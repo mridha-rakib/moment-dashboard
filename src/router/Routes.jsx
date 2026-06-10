@@ -19,6 +19,8 @@ import EventDetails from "../Pages/UserManagement/EventDetails";
 import Report from "../Pages/Support/Report";
 import ReportDetails from "../Pages/Support/ReportDetails";
 
+const basename = import.meta.env.BASE_URL.replace(/\/$/, "") || "/";
+
 export const router = createBrowserRouter([
   {
     element: <PublicRoute />,
@@ -65,4 +67,4 @@ export const router = createBrowserRouter([
       },
     ],
   },
-]);
+], { basename });
