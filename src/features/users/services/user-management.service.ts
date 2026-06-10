@@ -1,0 +1,85 @@
+import { AppApiError, httpClient } from "@/shared/api";
+import type { ApiResponse } from "@/shared/api";
+import type { ManagedUser, UpdateUserPayload, UserListParams, UserListResponse, UsersPagination } from "../types";
+import { userManagementEndpoints } from "./user-management.endpoints";
+
+type UsersMeta = Partial<UsersPagination> & {
+  pagination?: Partial<UsersPagination>;
+};
+
+const normalizeUser = (user: ManagedUser): ManagedUser => ({
+  ...user,
+  accountType: user.accountType ?? "personal",
+  isActive: Boolean(user.isActive),
+  emailVerified: Boolean(user.emailVerified),
+});
+
+const normalizePagination = (
+  params: UserListParams,
+  total: number,
+  meta?: UsersMeta,
+): UsersPagination => {
+  const rawPagination = meta?.pagination ?? meta ?? {};
+  const page = Number(rawPagination.page ?? params.page);
+  const limit = Number(rawPagination.limit ?? params.limit);
+  const safePage = Number.isFinite(page) && page > 0 ? page : params.page;
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : params.limit;
+  const safeTotal = Number(rawPagination.total ?? total) || 0;
+  const totalPages = Number(rawPagination.totalPages ?? Math.ceil(safeTotal / safeLimit)) || 0;
+
+  return {
+    page: safePage,
+    limit: safeLimit,
+    total: safeTotal,
+    totalPages,
+    from: safeTotal === 0 ? 0 : (safePage - 1) * safeLimit + 1,
+    to: safeTotal === 0 ? 0 : Math.min(safePage * safeLimit, safeTotal),
+  };
+};
+
+const unwrapUsers = (response: ApiResponse<ManagedUser[]>, params: UserListParams): UserListResponse => {
+  if (!Array.isArray(response.data)) {
+    throw new AppApiError(response.message || "The users response did not include a user list.", {
+      requestId: response.requestId,
+      statusCode: response.statusCode,
+    });
+  }
+
+  return {
+    users: response.data.map(normalizeUser),
+    pagination: normalizePagination(params, response.data.length, response.meta as UsersMeta | undefined),
+  };
+};
+
+const unwrapUser = (response: ApiResponse<ManagedUser>): ManagedUser => {
+  if (!response.data?.id) {
+    throw new AppApiError(response.message || "The user response did not include a user.", {
+      requestId: response.requestId,
+      statusCode: response.statusCode,
+    });
+  }
+
+  return normalizeUser(response.data);
+};
+
+export const userManagementService = {
+  async listUsers(params: UserListParams): Promise<UserListResponse> {
+    const response = await httpClient.get<ApiResponse<ManagedUser[]>>(userManagementEndpoints.users, {
+      params,
+    });
+
+    return unwrapUsers(response.data, params);
+  },
+
+  async getUser(id: string): Promise<ManagedUser> {
+    const response = await httpClient.get<ApiResponse<ManagedUser>>(userManagementEndpoints.user(id));
+
+    return unwrapUser(response.data);
+  },
+
+  async updateUser(id: string, payload: UpdateUserPayload): Promise<ManagedUser> {
+    const response = await httpClient.patch<ApiResponse<ManagedUser>>(userManagementEndpoints.user(id), payload);
+
+    return unwrapUser(response.data);
+  },
+};

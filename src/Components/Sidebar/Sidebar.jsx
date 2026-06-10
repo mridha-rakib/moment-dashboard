@@ -84,11 +84,15 @@ const Sidebar = ({ closeDrawer }) => {
     <div className="w-72 bg-[#0C0B10] h-screen flex flex-col border-r border-white/5 shadow-2xl">
       {/* Sidebar Header */}
       <div className="p-8 pb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img src={adminlogo} alt="Mooment" className="w-40 h-10" />
-          <div className="hidden">
-            <h1 className="text-white font-black text-lg tracking-tight italic">Mooment</h1>
-            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Super Admin</p>
+        <div className="flex items-center gap-3 min-w-0">
+          <img
+            src={adminlogo}
+            alt="Mooment admin logo"
+            className="w-11 h-11 rounded-2xl object-contain ring-1 ring-white/10 shadow-lg"
+          />
+          <div className="min-w-0">
+            <h1 className="text-white font-black text-lg tracking-tight leading-none">Mooment</h1>
+            <p className="mt-1 text-gray-500 text-[10px] font-bold uppercase tracking-wider">Super Admin</p>
           </div>
         </div>
         <button className="text-gray-500 hover:text-white transition-colors">

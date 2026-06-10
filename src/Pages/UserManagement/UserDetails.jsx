@@ -1,26 +1,122 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FileText, Download, ChevronDown, MoreHorizontal, MapPin, Calendar, ShoppingBag } from 'lucide-react';
+import { Download, ChevronDown, MoreHorizontal, MapPin, Calendar } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
+import { getApiErrorMessage } from '@/shared/api';
+import { getStorageDownloadUrl } from '@/shared/storage/object-storage.service';
+import { userManagementService } from '@/features/users';
+
+const formatAccountType = (type) => {
+  if (type === 'business') return 'Business Account';
+  return 'Personal Account';
+};
+
+const formatDate = (value) => {
+  if (!value) return 'N/A';
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'N/A';
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+  }).format(date);
+};
+
+const getAvatarUrl = (user) => (
+  user?.avatarUrl || `https://i.pravatar.cc/150?u=${encodeURIComponent(user?.email || user?.id || 'user')}`
+);
+
+const getDocumentName = (key) => {
+  if (!key) return null;
+
+  return key.split('/').pop() || 'Business-document.pdf';
+};
 
 const UserDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState('Profile');
   const [isVerifyOpen, setIsVerifyOpen] = useState(false);
+  const [apiUser, setApiUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdatingVerification, setIsUpdatingVerification] = useState(false);
+  const [error, setError] = useState(null);
 
-  const user = {
-    name: 'Steve Hard',
-    username: '@username',
-    email: 'john@gmail.com',
-    gender: 'Male',
-    age: '21',
-    address: '43, John hopkins road, NYC',
-    joiningDate: 'Jan 25 , 2024',
-    deletion: '20 days left',
-    bio: "Meet Alex Johnson, a passionate traveler and tech enthusiast from the USA. With a knack for coding and a love for exploring new cultures, Alex has visited over 15 countries and enjoys sharing stories from his adventures. When he's not working on innovative software solutions, you can find him hiking in the mountains or trying out local cuisines.",
-    avatar: 'https://i.pravatar.cc/150?u=steve',
-    status: 'Active',
-    accountType: 'Business Account'
+  const loadUser = useCallback(async () => {
+    if (!id) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const user = await userManagementService.getUser(id);
+      setApiUser(user);
+    } catch (loadError) {
+      setApiUser(null);
+      setError(getApiErrorMessage(loadError, 'Unable to load user details.'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void loadUser();
+  }, [loadUser]);
+
+  const user = useMemo(() => {
+    if (!apiUser) {
+      return null;
+    }
+
+    return {
+      id: apiUser.id,
+      name: apiUser.name || 'Unnamed user',
+      username: apiUser.username ? `@${apiUser.username}` : 'N/A',
+      email: apiUser.email || 'N/A',
+      gender: apiUser.gender || 'N/A',
+      age: apiUser.age ?? 'N/A',
+      address: apiUser.address || 'N/A',
+      joiningDate: formatDate(apiUser.createdAt),
+      deletion: 'N/A',
+      bio: apiUser.bio || 'No bio added.',
+      avatar: getAvatarUrl(apiUser),
+      status: apiUser.isActive ? 'Active' : 'Suspended',
+      accountType: formatAccountType(apiUser.accountType),
+      emailVerified: apiUser.emailVerified,
+      businessDocumentKey: apiUser.businessDocumentKey,
+    };
+  }, [apiUser]);
+
+  const handleVerificationUpdate = async (emailVerified) => {
+    if (!apiUser) return;
+
+    setIsUpdatingVerification(true);
+
+    try {
+      const updatedUser = await userManagementService.updateUser(apiUser.id, { emailVerified });
+      setApiUser(updatedUser);
+      setIsVerifyOpen(false);
+    } catch (verificationError) {
+      window.alert(getApiErrorMessage(verificationError, 'Unable to update verification status.'));
+    } finally {
+      setIsUpdatingVerification(false);
+    }
+  };
+
+  const handleDocumentDownload = async () => {
+    if (!user?.businessDocumentKey) return;
+
+    try {
+      const url = await getStorageDownloadUrl(user.businessDocumentKey);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (downloadError) {
+      window.alert(getApiErrorMessage(downloadError, 'Unable to open business document.'));
+    }
   };
 
   const renderProfileTab = () => (
@@ -72,24 +168,34 @@ const UserDetails = () => {
       {/* Documents Section */}
       <div className="pt-4">
         <p className="text-[11px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-8">DOCUMENT OF THE BUSINESS</p>
-        <div className="w-[110px] h-[130px] bg-white dark:bg-[#1E1E2D] rounded-[16px] flex flex-col items-center justify-center gap-3 border border-gray-200 dark:border-gray-800 relative group cursor-pointer hover:shadow-md transition-all shadow-sm">
-          <div className="flex flex-col items-center">
-            <div className="w-10 h-12 border-2 border-gray-800 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-4 bg-gray-800 flex items-center justify-center">
-                <span className="text-[7px] font-black text-white">PDF</span>
-              </div>
-              <div className="pt-4 space-y-1">
-                <div className="w-6 h-0.5 bg-gray-200"></div>
-                <div className="w-6 h-0.5 bg-gray-200"></div>
-                <div className="w-4 h-0.5 bg-gray-200"></div>
+        {user.businessDocumentKey ? (
+          <button
+            type="button"
+            onClick={handleDocumentDownload}
+            className="w-[110px] h-[130px] bg-white dark:bg-[#1E1E2D] rounded-[16px] flex flex-col items-center justify-center gap-3 border border-gray-200 dark:border-gray-800 relative group cursor-pointer hover:shadow-md transition-all shadow-sm"
+          >
+            <div className="flex flex-col items-center">
+              <div className="w-10 h-12 border-2 border-gray-800 rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-4 bg-gray-800 flex items-center justify-center">
+                  <span className="text-[7px] font-black text-white">PDF</span>
+                </div>
+                <div className="pt-4 space-y-1">
+                  <div className="w-6 h-0.5 bg-gray-200"></div>
+                  <div className="w-6 h-0.5 bg-gray-200"></div>
+                  <div className="w-4 h-0.5 bg-gray-200"></div>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-1.5 absolute bottom-3">
-            <p className="text-[9px] font-bold text-gray-500">Filename.pdf</p>
-            <Download size={11} className="text-gray-400" />
-          </div>
-        </div>
+            <div className="flex items-center gap-1.5 absolute bottom-3">
+              <p className="max-w-[72px] truncate text-[9px] font-bold text-gray-500">
+                {getDocumentName(user.businessDocumentKey)}
+              </p>
+              <Download size={11} className="text-gray-400" />
+            </div>
+          </button>
+        ) : (
+          <p className="text-[14px] font-medium text-gray-400">No business document uploaded.</p>
+        )}
       </div>
     </div>
   );
@@ -207,6 +313,34 @@ const UserDetails = () => {
     </div>
   );
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FD] dark:bg-[#13131F] p-8 transition-colors duration-300">
+        <div className="mx-auto flex max-w-[1400px] items-center gap-2 text-sm font-bold text-gray-400">
+          <Spinner className="size-4" />
+          Loading user details...
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FD] dark:bg-[#13131F] p-8 transition-colors duration-300">
+        <div className="mx-auto max-w-[1400px]">
+          <p className="mb-4 text-sm font-bold text-red-500">{error || 'User not found.'}</p>
+          <button
+            type="button"
+            onClick={() => navigate('/user-management')}
+            className="rounded-xl bg-[#433E6F] px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-[#343058]"
+          >
+            Back to users
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F9FD] dark:bg-[#13131F] p-8 transition-colors duration-300">
       <div className="mx-auto max-w-[1400px]">
@@ -227,7 +361,7 @@ const UserDetails = () => {
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-[#10B981] text-white text-[9px] font-black rounded-lg uppercase tracking-widest">
+                <span className={`px-3 py-1 text-white text-[9px] font-black rounded-lg uppercase tracking-widest ${user.status === 'Active' ? 'bg-[#10B981]' : 'bg-red-500'}`}>
                   {user.status}
                 </span>
                 <span className="px-3 py-1 bg-[#E2E8F0] dark:bg-[#1E1E2D] text-[#64748B] text-[9px] font-black rounded-lg uppercase tracking-widest">
@@ -244,13 +378,25 @@ const UserDetails = () => {
               onClick={() => setIsVerifyOpen(!isVerifyOpen)}
               className="flex items-center gap-3 px-5 py-2 bg-white dark:bg-[#1E1E2D] border border-gray-200 dark:border-gray-800 rounded-xl text-gray-400 text-xs font-bold hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all shadow-sm"
             >
-              Select Verified or not
+              {user.emailVerified ? 'Verified' : 'Not verified'}
               <ChevronDown size={14} className={`transition-transform ${isVerifyOpen ? 'rotate-180' : ''}`} />
             </button>
             {isVerifyOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1E1E2D] border border-gray-100 dark:border-gray-800 rounded-xl shadow-xl z-30 py-2 overflow-hidden animate-in fade-in zoom-in duration-200">
-                <button className="w-full px-4 py-2 text-left text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-colors">Verified</button>
-                <button className="w-full px-4 py-2 text-left text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-colors">Disproved</button>
+                <button
+                  disabled={isUpdatingVerification}
+                  onClick={() => handleVerificationUpdate(true)}
+                  className="w-full px-4 py-2 text-left text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] disabled:opacity-50 transition-colors"
+                >
+                  Verified
+                </button>
+                <button
+                  disabled={isUpdatingVerification}
+                  onClick={() => handleVerificationUpdate(false)}
+                  className="w-full px-4 py-2 text-left text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] disabled:opacity-50 transition-colors"
+                >
+                  Disproved
+                </button>
               </div>
             )}
           </div>

@@ -1,6 +1,56 @@
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, MoreVertical, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
+import { getApiErrorMessage } from '@/shared/api';
+import { userManagementService } from '@/features/users';
+
+const itemsPerPage = 4;
+
+const defaultPagination = {
+  page: 1,
+  limit: itemsPerPage,
+  total: 0,
+  totalPages: 0,
+  from: 0,
+  to: 0,
+};
+
+const formatAccountType = (type) => {
+  if (type === 'business') return 'Business';
+  return 'Personal';
+};
+
+const formatDate = (value) => {
+  if (!value) return 'N/A';
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'N/A';
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+  }).format(date);
+};
+
+const getAvatarUrl = (user) => (
+  user.avatarUrl || `https://i.pravatar.cc/150?u=${encodeURIComponent(user.email || user.id)}`
+);
+
+const toUserRow = (user) => ({
+  id: user.id,
+  name: user.name || 'Unnamed user',
+  email: user.email || 'No email',
+  type: formatAccountType(user.accountType),
+  date: formatDate(user.createdAt),
+  status: user.isActive ? 'Active' : 'Suspended',
+  isActive: user.isActive,
+  avatar: getAvatarUrl(user),
+});
 
 const UserManagement = () => {
   const navigate = useNavigate();
@@ -8,34 +58,41 @@ const UserManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
-  const itemsPerPage = 4;
+  const [users, setUsers] = useState([]);
+  const [pagination, setPagination] = useState(defaultPagination);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [error, setError] = useState(null);
 
-  const userData = useMemo(() => [
-    { id: 1, name: 'Theresa Webb', email: 'bill.sanders@example.com', type: 'Personal', date: 'Oct 12, 2026', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=theresa' },
-    { id: 2, name: 'Marvin McKinney', email: 'tim.jennings@example.com', type: 'Personal', date: 'Oct 12, 2026', status: 'Offline', avatar: 'https://i.pravatar.cc/150?u=marvin' },
-    { id: 3, name: 'Courtney Henry', email: 'georgia.young@example.com', type: 'Business', date: 'Oct 12, 2026', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=courtney' },
-    { id: 4, name: 'Steve Herd', email: 'sarah.c@webion.com', type: 'Business', date: 'Oct 12, 2028', status: 'Offline', avatar: 'https://i.pravatar.cc/150?u=steve' },
-    { id: 5, name: 'Jane Cooper', email: 'jane.cooper@example.com', type: 'Personal', date: 'Nov 15, 2026', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=jane' },
-    { id: 6, name: 'Cody Fisher', email: 'cody.fisher@example.com', type: 'Business', date: 'Dec 01, 2026', status: 'Offline', avatar: 'https://i.pravatar.cc/150?u=cody' },
-    { id: 7, name: 'Esther Howard', email: 'esther.howard@example.com', type: 'Personal', date: 'Jan 20, 2027', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=esther' },
-    { id: 8, name: 'Jenny Wilson', email: 'jenny.wilson@example.com', type: 'Business', date: 'Feb 10, 2027', status: 'Active', avatar: 'https://i.pravatar.cc/150?u=jenny' },
-  ], []);
+  const loadUsers = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-  // Filter and Paginate logic
-  const filteredData = useMemo(() => {
-    return userData.filter(user =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, userData]);
+    try {
+      const result = await userManagementService.listUsers({
+        page: currentPage,
+        limit: itemsPerPage,
+        role: 'user',
+        ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
+      });
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+      setUsers(result.users);
+      setPagination(result.pagination);
+    } catch (loadError) {
+      setUsers([]);
+      setPagination(defaultPagination);
+      setError(getApiErrorMessage(loadError, 'Unable to load users.'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, searchTerm]);
 
-  const currentItems = useMemo(() => {
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    return filteredData.slice(indexOfFirstItem, indexOfLastItem);
-  }, [currentPage, filteredData]);
+  useEffect(() => {
+    void loadUsers();
+  }, [loadUsers]);
+
+  const totalPages = pagination.totalPages;
+  const currentItems = useMemo(() => users.map(toUserRow), [users]);
 
   const handlePageChange = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -48,36 +105,46 @@ const UserManagement = () => {
     setIsActionModalOpen(true);
   };
 
+  const handleStatusToggle = async () => {
+    if (!selectedUser) return;
+
+    setIsUpdatingStatus(true);
+
+    try {
+      await userManagementService.updateUser(selectedUser.id, {
+        isActive: !selectedUser.isActive,
+      });
+      setIsActionModalOpen(false);
+      setSelectedUser(null);
+      await loadUsers();
+    } catch (statusError) {
+      window.alert(getApiErrorMessage(statusError, 'Unable to update user status.'));
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   return (
     <div className="space-y-8 relative">
-      {/* Total User Card */}
       <div className="bg-white dark:bg-[#1E1E2D] p-8 rounded-[24px] shadow-sm border border-gray-50 dark:border-gray-800 flex justify-between items-center max-w-full transition-colors">
         <div>
           <p className="text-[12px] font-bold text-[#8E8EBC] uppercase tracking-widest mb-2">TOTAL USER</p>
-          <h2 className="text-[36px] font-bold text-[#1A1A4B] dark:text-white transition-colors">{userData.length}</h2>
+          <h2 className="text-[36px] font-bold text-[#1A1A4B] dark:text-white transition-colors">
+            {pagination.total}
+          </h2>
         </div>
-        <div className="p-4 bg-[#602E7A1A] dark:bg-[#2D2D3F] rounded-2xl text-[#8E8EBC] transition-colors">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 8C15 9.65685 13.6569 11 12 11C10.3431 11 9 9.65685 9 8C9 6.34315 10.3431 5 12 5C13.6569 5 15 6.34315 15 8Z" stroke="#602E7A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M16 4C17.6569 4 19 5.34315 19 7C19 8.22309 18.2681 9.27523 17.2183 9.7423" stroke="#602E7A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M13.7143 14H10.2857C7.91878 14 6 15.9188 6 18.2857C6 19.2325 6.76751 20 7.71428 20H16.2857C17.2325 20 18 19.2325 18 18.2857C18 15.9188 16.0812 14 13.7143 14Z" stroke="#602E7A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M17.7144 13C20.0813 13 22.0001 14.9188 22.0001 17.2857C22.0001 18.2325 21.2326 19 20.2858 19" stroke="#602E7A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8 4C6.34315 4 5 5.34315 5 7C5 8.22309 5.73193 9.27523 6.78168 9.7423" stroke="#602E7A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M3.71429 19C2.76751 19 2 18.2325 2 17.2857C2 14.9188 3.91878 13 6.28571 13" stroke="#602E7A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+        <div className="p-4 bg-[#602E7A1A] dark:bg-[#2D2D3F] rounded-2xl text-[#602E7A] transition-colors">
+          <Users size={28} />
         </div>
       </div>
 
-
-      {/* Search and Table Section */}
       <div className="bg-white dark:bg-[#1E1E2D] rounded-[24px] shadow-sm border border-gray-50 dark:border-gray-800 overflow-hidden transition-colors">
-        {/* Search Bar */}
         <div className="p-6 flex justify-end">
           <div className="relative w-full max-w-[400px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
-              placeholder="Search user by name or company name"
+              placeholder="Search user by name, email, or username"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -88,8 +155,6 @@ const UserManagement = () => {
           </div>
         </div>
 
-
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -102,8 +167,34 @@ const UserManagement = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+              {isLoading && (
+                <tr>
+                  <td colSpan="5" className="px-8 py-10">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-400">
+                      <Spinner className="size-4" />
+                      Loading users...
+                    </div>
+                  </td>
+                </tr>
+              )}
 
-              {currentItems.map((user) => (
+              {!isLoading && error && (
+                <tr>
+                  <td colSpan="5" className="px-8 py-10 text-sm font-bold text-red-500">
+                    {error}
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading && !error && currentItems.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="px-8 py-10 text-center text-gray-400 font-medium">
+                    No users found matching your search.
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading && !error && currentItems.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50/50 dark:hover:bg-[#2D2D3F]/50 transition-colors">
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-4">
@@ -127,7 +218,9 @@ const UserManagement = () => {
                         Active
                       </span>
                     ) : (
-                      <span className="text-[#C0C0C0] text-[14px] font-medium">Offline</span>
+                      <span className="px-4 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-[11px] font-bold uppercase tracking-wider">
+                        Suspended
+                      </span>
                     )}
                   </td>
                   <td className="px-8 py-5 text-right">
@@ -140,22 +233,13 @@ const UserManagement = () => {
                   </td>
                 </tr>
               ))}
-              {currentItems.length === 0 && (
-                <tr>
-                  <td colSpan="5" className="px-8 py-10 text-center text-gray-400 font-medium">
-                    No users found matching your search.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
 
-        {/* Footer / Pagination */}
         <div className="px-8 py-6 flex items-center justify-between border-t border-gray-50 dark:border-gray-800 transition-colors">
           <p className="text-[12px] text-gray-400 font-medium">
-            Showing {filteredData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
-            {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} members
+            Showing {pagination.from}-{pagination.to} of {pagination.total} members
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -188,10 +272,8 @@ const UserManagement = () => {
             </button>
           </div>
         </div>
-
       </div>
 
-      {/* Action Modal */}
       {isActionModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
           <div
@@ -211,10 +293,11 @@ const UserManagement = () => {
                 View
               </button>
               <button
-                className="block w-full text-[28px] font-bold text-[#1A1A4B] dark:text-white hover:text-red-500 transition-colors"
-                onClick={() => setIsActionModalOpen(false)}
+                className="block w-full text-[28px] font-bold text-[#1A1A4B] dark:text-white hover:text-red-500 disabled:opacity-50 transition-colors"
+                disabled={isUpdatingStatus}
+                onClick={handleStatusToggle}
               >
-                Suspend
+                {isUpdatingStatus ? 'Updating...' : selectedUser?.isActive ? 'Suspend' : 'Activate'}
               </button>
             </div>
           </div>
