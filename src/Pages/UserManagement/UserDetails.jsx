@@ -304,8 +304,8 @@ const UserDetails = () => {
             </div>
 
             <div className="flex items-center gap-3 pt-2">
-              <p className="text-[28px] font-bold text-[#1A1A4B] dark:text-white transition-colors">£28</p>
-              <p className="text-[18px] font-medium text-gray-300 line-through">£32</p>
+              <p className="text-[28px] font-bold text-[#1A1A4B] dark:text-white transition-colors">$28</p>
+              <p className="text-[18px] font-medium text-gray-300 line-through">$32</p>
             </div>
           </div>
         </div>
