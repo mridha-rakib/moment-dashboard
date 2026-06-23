@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Download, ChevronDown, MoreHorizontal, MapPin, Calendar } from 'lucide-react';
+import { Download, ChevronDown, MapPin, Calendar } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { getApiErrorMessage } from '@/shared/api';
 import { getStorageDownloadUrl } from '@/shared/storage/object-storage.service';
@@ -46,6 +46,10 @@ const UserDetails = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingVerification, setIsUpdatingVerification] = useState(false);
   const [error, setError] = useState(null);
+  const [events, setEvents] = useState(null);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState(null);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
 
   const loadUser = useCallback(async () => {
     if (!id) return;
@@ -107,6 +111,48 @@ const UserDetails = () => {
       setIsUpdatingVerification(false);
     }
   };
+
+  const loadEvents = useCallback(async () => {
+    if (!id) return;
+
+    setEventsLoading(true);
+    setEventsError(null);
+
+    try {
+      const groups = await userManagementService.getUserEvents(id);
+
+      const resolveUrls = async (list) =>
+        Promise.all(
+          list.map(async (event) => {
+            if (!event.bannerImageKey) return event;
+            try {
+              const url = await getStorageDownloadUrl(event.bannerImageKey);
+              return { ...event, bannerImageUrl: url };
+            } catch {
+              return event;
+            }
+          }),
+        );
+
+      const [active, past] = await Promise.all([
+        resolveUrls(groups.active ?? []),
+        resolveUrls(groups.past ?? []),
+      ]);
+
+      setEvents({ active, past });
+      setEventsLoaded(true);
+    } catch (loadError) {
+      setEventsError(getApiErrorMessage(loadError, 'Unable to load events.'));
+    } finally {
+      setEventsLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (activeTab === 'Event' && !eventsLoaded && !eventsLoading) {
+      void loadEvents();
+    }
+  }, [activeTab, eventsLoaded, eventsLoading, loadEvents]);
 
   const handleDocumentDownload = async () => {
     if (!user?.businessDocumentKey) return;
@@ -200,76 +246,144 @@ const UserDetails = () => {
     </div>
   );
 
-  const renderEventTab = () => (
-    <div className="grid grid-cols-1 gap-8 duration-500 lg:grid-cols-3 animate-in fade-in">
-      {[1, 2].map((i) => (
-        <div key={i} className="bg-white dark:bg-[#1E1E2D] rounded-[22px] overflow-hidden shadow-sm border border-gray-50 dark:border-gray-800 group hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center justify-between p-6">
-            <div className="flex items-center gap-3">
-              <img src="https://i.pravatar.cc/150?u=djkoko" alt="Host" className="object-cover w-10 h-10 rounded-full" />
-              <div>
-                <p className="text-sm font-bold text-[#1A1A4B] dark:text-white transition-colors">
-                  Dj Koko <span className="font-medium text-gray-400">hosting</span> Rooftop Session Vol.4 <span className="font-medium text-gray-400">event</span>
-                </p>
-                <p className="text-[11px] text-gray-300 font-medium">{i === 1 ? '3 min ago' : '2 min ago'} • 🌐</p>
-              </div>
-            </div>
-            <button className="text-gray-300 hover:text-gray-600 transition-colors">
-              <MoreHorizontal size={20} />
-            </button>
-          </div>
+  const getEventStatusBadge = (status) => {
+    const map = {
+      published: { label: 'Published', className: 'bg-[#10B981]' },
+      live: { label: 'Live', className: 'bg-red-500' },
+      completed: { label: 'Completed', className: 'bg-[#6366F1]' },
+      cancelled: { label: 'Cancelled', className: 'bg-gray-500' },
+      draft: { label: 'Draft', className: 'bg-gray-400' },
+    };
+    return map[status] ?? { label: status, className: 'bg-gray-400' };
+  };
 
-          <div className="px-6 pb-6">
-            <div className="relative h-[280px] rounded-[24px] overflow-hidden">
+  const renderEventCard = (event) => {
+    const badge = getEventStatusBadge(event.status);
+    const locationLabel = event.location?.venue || event.location?.address || event.location?.searchLabel;
+
+    return (
+      <div key={event.id} className="bg-white dark:bg-[#1E1E2D] rounded-[22px] overflow-hidden shadow-sm border border-gray-50 dark:border-gray-800 group hover:shadow-xl transition-all duration-300">
+        <div className="px-6 pt-6 pb-6">
+          <div className="relative h-[260px] rounded-[20px] overflow-hidden bg-gray-100 dark:bg-[#2D2D3F]">
+            {event.bannerImageUrl ? (
               <img
-                src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?q=80&w=2070&auto=format&fit=crop"
-                alt="Event"
+                src={event.bannerImageUrl}
+                alt={event.name ?? 'Event'}
                 className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-              <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-[#10B981] rounded-full">
-                <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-                <span className="text-[10px] font-bold text-white uppercase tracking-wider">Live Now</span>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Calendar size={40} className="text-gray-300 dark:text-gray-600" />
               </div>
-              <div className="absolute flex items-end justify-between bottom-6 left-6 right-6">
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">Music Party</span>
-                    <span className="px-3 py-1 bg-[#FF4D4D]/20 backdrop-blur-md border border-[#FF4D4D]/30 text-[#FF4D4D] text-[10px] font-bold rounded-lg uppercase tracking-wider flex items-center gap-1">
-                      <div className="w-1 h-1 bg-[#FF4D4D] rounded-full"></div> Busy
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">Rooftop Session Vol.4</h3>
-                    <div className="flex items-center gap-4 mt-1 text-white/70 text-[11px] font-medium">
-                      <span className="flex items-center gap-1"><Calendar size={12} /> Sat, Sep 9 • 9:00 - 4:00 PM</span>
-                      <span className="flex items-center gap-1"><MapPin size={12} /> 0.3mi</span>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => navigate(`/event-details/${i}`)}
-                  className="px-4 py-2 bg-white/10 backdrop-blur-md border border-white/30 text-white text-[11px] font-bold rounded-xl hover:bg-white hover:text-[#1A1A4B] transition-all"
-                >
-                  View Details
-                </button>
-              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+            <div className={`absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 ${badge.className} rounded-full`}>
+              <span className="text-[10px] font-bold text-white uppercase tracking-wider">{badge.label}</span>
             </div>
-            <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3].map(j => (
-                    <img key={j} src={`https://i.pravatar.cc/100?u=${j}`} className="object-cover w-6 h-6 border-2 border-white rounded-full" />
+            <div className="absolute bottom-5 left-5 right-5 space-y-2">
+              {event.categories?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {event.categories.slice(0, 2).map((cat) => (
+                    <span key={cat} className="px-2.5 py-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">
+                      {cat}
+                    </span>
                   ))}
                 </div>
-                <p className="text-[11px] text-gray-400 font-bold">41 going</p>
+              )}
+              <h3 className="text-lg font-bold text-white leading-snug line-clamp-2">
+                {event.name ?? 'Untitled event'}
+              </h3>
+              <div className="flex items-center gap-3 text-white/70 text-[11px] font-medium">
+                {event.scheduledAt && (
+                  <span className="flex items-center gap-1">
+                    <Calendar size={11} />
+                    {formatDate(event.scheduledAt)}
+                  </span>
+                )}
+                {locationLabel && (
+                  <span className="flex items-center gap-1 truncate max-w-[140px]">
+                    <MapPin size={11} />
+                    {locationLabel}
+                  </span>
+                )}
               </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 text-[10px] font-bold rounded-lg uppercase tracking-wider bg-gray-100 dark:bg-[#2D2D3F] text-gray-500 dark:text-gray-400">
+                {event.privacy}
+              </span>
+              {event.tickets?.length > 0 && (
+                <span className="text-[11px] text-gray-400 font-medium">
+                  {event.tickets.length} {event.tickets.length === 1 ? 'ticket' : 'tickets'}
+                </span>
+              )}
             </div>
           </div>
         </div>
-      ))}
-    </div>
-  );
+      </div>
+    );
+  };
+
+  const renderEventSection = (title, list) => {
+    if (!list?.length) return null;
+
+    return (
+      <div className="space-y-4">
+        <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em]">{title}</h3>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {list.map(renderEventCard)}
+        </div>
+      </div>
+    );
+  };
+
+  const renderEventTab = () => {
+    if (eventsLoading) {
+      return (
+        <div className="flex items-center gap-2 text-sm font-bold text-gray-400 py-8 duration-500 animate-in fade-in">
+          <Spinner className="size-4" />
+          Loading events...
+        </div>
+      );
+    }
+
+    if (eventsError) {
+      return (
+        <div className="space-y-4 py-8 duration-500 animate-in fade-in">
+          <p className="text-sm font-bold text-red-500">{eventsError}</p>
+          <button
+            type="button"
+            onClick={loadEvents}
+            className="rounded-xl bg-[#433E6F] px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-[#343058]"
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+
+    const hasActive = events?.active?.length > 0;
+    const hasPast = events?.past?.length > 0;
+
+    if (!hasActive && !hasPast) {
+      return (
+        <div className="py-16 text-center duration-500 animate-in fade-in">
+          <Calendar size={36} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+          <p className="text-sm font-bold text-gray-400">No events yet</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-10 duration-500 animate-in fade-in">
+        {renderEventSection('Upcoming', events.active)}
+        {renderEventSection('Past', events.past)}
+      </div>
+    );
+  };
 
   const renderCommerceTab = () => (
     <div className="grid grid-cols-1 gap-10 duration-500 lg:grid-cols-2 animate-in fade-in">
