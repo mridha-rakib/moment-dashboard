@@ -37,6 +37,7 @@ export type UserListParams = {
   search?: string;
   role?: UserRole;
   isActive?: boolean;
+  accountType?: UserAccountType;
 };
 
 export type UserListResponse = {
@@ -45,3 +46,50 @@ export type UserListResponse = {
 };
 
 export type UpdateUserPayload = Partial<Pick<ManagedUser, "isActive" | "emailVerified">>;
+
+export type EventStatus = "draft" | "published" | "live" | "completed" | "cancelled";
+export type EventPrivacy = "public" | "private" | "locked";
+
+export type EventLocation = {
+  searchLabel?: string | null;
+  venue?: string | null;
+  address?: string | null;
+  additionalInfo?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
+export type EventTicket = {
+  id: string;
+  name: string;
+  description?: string | null;
+  type: "free" | "pay";
+  price: number;
+  capacity: number;
+  salesEndAt?: string | null;
+};
+
+export type EventResponse = {
+  id: string;
+  name?: string | null;
+  description?: string | null;
+  bannerImageKey?: string | null;
+  bannerImageUrl?: string | null;
+  scheduledAt?: string | null;
+  endAt?: string | null;
+  location?: EventLocation | null;
+  privacy: EventPrivacy;
+  status: EventStatus;
+  tickets: EventTicket[];
+  categories: string[];
+  publishedAt?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  cancelledAt?: string | null;
+  createdAt: string;
+};
+
+export type ProfileEventGroups = {
+  active: EventResponse[];
+  past: EventResponse[];
+};

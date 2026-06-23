@@ -1,6 +1,6 @@
 import { AppApiError, httpClient } from "@/shared/api";
 import type { ApiResponse } from "@/shared/api";
-import type { ManagedUser, UpdateUserPayload, UserListParams, UserListResponse, UsersPagination } from "../types";
+import type { ManagedUser, ProfileEventGroups, UpdateUserPayload, UserListParams, UserListResponse, UsersPagination } from "../types";
 import { userManagementEndpoints } from "./user-management.endpoints";
 
 type UsersMeta = Partial<UsersPagination> & {
@@ -81,5 +81,21 @@ export const userManagementService = {
     const response = await httpClient.patch<ApiResponse<ManagedUser>>(userManagementEndpoints.user(id), payload);
 
     return unwrapUser(response.data);
+  },
+
+  async getUserEvents(id: string): Promise<ProfileEventGroups> {
+    const response = await httpClient.get<ApiResponse<{ events: ProfileEventGroups }>>(
+      userManagementEndpoints.userEvents(id),
+    );
+
+    const data = response.data?.data;
+    if (!data?.events) {
+      throw new AppApiError(response.data?.message || "Failed to retrieve user events.", {
+        requestId: response.data?.requestId,
+        statusCode: response.data?.statusCode,
+      });
+    }
+
+    return data.events;
   },
 };
