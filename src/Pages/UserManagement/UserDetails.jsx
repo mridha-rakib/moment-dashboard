@@ -385,47 +385,7 @@ const UserDetails = () => {
     );
   };
 
-  const renderCommerceTab = () => (
-    <div className="grid grid-cols-1 gap-10 duration-500 lg:grid-cols-2 animate-in fade-in">
-      {[1, 2].map((i) => (
-        <div key={i} className="space-y-6 group">
-          <div className="relative aspect-square rounded-[32px] overflow-hidden bg-white dark:bg-[#1E1E2D] shadow-sm border border-gray-50 dark:border-gray-800 group-hover:shadow-xl transition-all duration-500">
-            <img
-              src="https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=1974&auto=format&fit=crop"
-              alt="Product"
-              className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
-            />
-            <div className="absolute top-4 right-4 px-2 py-1 bg-black/20 backdrop-blur-md rounded-lg text-white text-[10px] font-bold">
-              1/3
-            </div>
-          </div>
 
-          <div className="px-2 space-y-4">
-            <div className="flex items-start justify-between">
-              <span className="px-3 py-1 bg-gray-200 dark:bg-[#2D2D3F] text-gray-500 dark:text-gray-400 text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                Skin Care
-              </span>
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#1E1E2D] border border-gray-100 dark:border-gray-800 rounded-lg text-gray-500 dark:text-gray-400 text-[11px] font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all">
-                Action <ChevronDown size={14} />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-[22px] font-bold text-[#1A1A4B] dark:text-white transition-colors">Medusa Skin Whitening Cream</h3>
-              <p className="text-[14px] leading-relaxed text-gray-400 font-medium">
-                Premium skin brightening cream with Arbutin, Niacinamide & Hyaluronic Acid. For all skin types. Present QR code at event to collect.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <p className="text-[28px] font-bold text-[#1A1A4B] dark:text-white transition-colors">$28</p>
-              <p className="text-[18px] font-medium text-gray-300 line-through">$32</p>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 
   if (isLoading) {
     return (
@@ -519,7 +479,7 @@ const UserDetails = () => {
         {/* Tabs */}
         <div className="mb-10 border-b border-gray-200 dark:border-gray-800">
           <div className="flex gap-8">
-            {['Profile', 'Event', 'Commerce'].map((tab) => (
+            {['Profile', 'Event'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -539,7 +499,7 @@ const UserDetails = () => {
         <div className="mt-8">
           {activeTab === 'Profile' && renderProfileTab()}
           {activeTab === 'Event' && renderEventTab()}
-          {activeTab === 'Commerce' && renderCommerceTab()}
+
         </div>
       </div>
     </div>

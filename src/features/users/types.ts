@@ -18,6 +18,10 @@ export type ManagedUser = {
   role: UserRole;
   isActive: boolean;
   emailVerified: boolean;
+  isDeleted: boolean;
+  totalEvents: number;
+  completedEvents: number;
+  cancelledEvents: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -43,6 +47,14 @@ export type UserListParams = {
 export type UserListResponse = {
   users: ManagedUser[];
   pagination: UsersPagination;
+  stats: UserManagementStats;
+};
+
+export type UserManagementStats = {
+  total: number;
+  active: number;
+  suspended: number;
+  business: number;
 };
 
 export type UpdateUserPayload = Partial<Pick<ManagedUser, "isActive" | "emailVerified">>;

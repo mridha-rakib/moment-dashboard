@@ -1,40 +1,71 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronDown, MoreVertical, XCircle, Ban, Trash2, Hash, Layers } from 'lucide-react';
+import { ChevronDown, Hash, Layers } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
+import { reportService } from '@/features/reports';
+import { getApiErrorMessage } from '@/shared/api';
+
+const titleCase = (value) => value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : 'Unknown';
+const avatarFor = (user) => {
+  if (user?.avatarUrl) return user.avatarUrl;
+  const initial = (user?.name || '?').charAt(0).toUpperCase().replace(/[<>&"']/g, '') || '?';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="100%" height="100%" fill="#E8EBFD"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="#6D67E4" font-family="Arial" font-size="40" font-weight="700">${initial}</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
 
 const ReportDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [detail, setDetail] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState(null);
 
-  const reportData = {
-    id: '1235',
-    count: '45',
-    status: 'Pending',
-    content: {
-      image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=1924&auto=format&fit=crop',
-      description: "Here's some totally pointless content that doesn't really say anything useful. It's just a bunch of words thrown together to fill space. Enjoy!"
-    },
-    reportedUser: {
-      name: 'Leslie Alexander',
-      username: '@username',
-      avatar: 'https://i.pravatar.cc/150?u=leslie'
-    },
-    reports: [
-      {
-        by: { name: 'Arlene McCoy', username: '@username', avatar: 'https://i.pravatar.cc/150?u=arlene' },
-        reason: { category: 'CONTENT VIOLATIONS', type: 'Inappropriate content' }
-      },
-      {
-        by: { name: 'Cody Fisher', username: '@username', avatar: 'https://i.pravatar.cc/150?u=cody' },
-        reason: { category: 'CONTENT VIOLATIONS', type: 'Inappropriate content' }
-      },
-      {
-        by: { name: 'Kathryn Murphy', username: '@username', avatar: 'https://i.pravatar.cc/150?u=kathryn' },
-        reason: { category: 'CONTENT VIOLATIONS', type: 'Inappropriate content' }
-      }
-    ]
+  const loadReport = useCallback(async () => {
+    if (!id) return;
+    setIsLoading(true);
+    setError(null);
+    try { setDetail(await reportService.get(id)); }
+    catch (loadError) { setDetail(null); setError(getApiErrorMessage(loadError, 'Unable to load report details.')); }
+    finally { setIsLoading(false); }
+  }, [id]);
+
+  useEffect(() => { void loadReport(); }, [loadReport]);
+
+  const reportData = useMemo(() => detail ? {
+    id: detail.report.id,
+    count: detail.relatedReports.length,
+    status: titleCase(detail.report.status),
+    targetType: detail.report.targetType,
+    content: { image: detail.report.content.imageUrl, description: detail.report.content.description || detail.report.content.title || 'No content description available.' },
+    reportedUser: { ...detail.report.reportedUser, username: detail.report.reportedUser.email, avatar: avatarFor(detail.report.reportedUser) },
+    reports: detail.relatedReports.map((report) => ({
+      by: { ...report.reporter, username: report.reporter.email, avatar: avatarFor(report.reporter) },
+      reason: { category: `${titleCase(report.targetType)} report`, type: report.reason },
+    })),
+  } : null, [detail]);
+
+  const handleAction = async (action) => {
+    if (!id) return;
+    setIsUpdating(true);
+    try {
+      await reportService.action(id, action);
+      setIsActionModalOpen(false);
+      await loadReport();
+    } catch (actionError) { window.alert(getApiErrorMessage(actionError, 'Unable to complete the report action.')); }
+    finally { setIsUpdating(false); }
   };
+
+  const handleDelete = async () => {
+    if (!id || !window.confirm('Delete this report record?')) return;
+    setIsUpdating(true);
+    try { await reportService.delete(id); navigate('/report'); }
+    catch (deleteError) { window.alert(getApiErrorMessage(deleteError, 'Unable to delete the report.')); setIsUpdating(false); }
+  };
+
+  if (isLoading) return <div className="min-h-[400px] flex items-center justify-center"><Spinner className="size-6 text-[#6D67E4]" /></div>;
+  if (error || !reportData) return <div className="min-h-[400px] flex flex-col items-center justify-center"><p className="text-sm font-bold text-red-500 mb-4">{error || 'Report not found.'}</p><button onClick={() => void loadReport()} className="px-4 py-2 rounded-xl text-xs font-bold text-red-500 bg-red-500/10">Try Again</button></div>;
 
   return (
     <div className="min-h-screen bg-[#F8F9FD] dark:bg-[#13131F] p-8 transition-colors duration-300">
@@ -77,18 +108,18 @@ const ReportDetails = () => {
               
               {isActionModalOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1E1E2D] rounded-2xl shadow-xl border border-gray-50 dark:border-gray-800 z-[60] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                  <button className="w-full px-6 py-3 text-left text-[12px] font-bold text-[#4B4B4B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all border-b border-gray-50 dark:border-gray-800">Remove Content</button>
-                  <button className="w-full px-6 py-3 text-left text-[12px] font-bold text-[#4B4B4B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all border-b border-gray-50 dark:border-gray-800">Banned User</button>
-                  <button className="w-full px-6 py-3 text-left text-[12px] font-bold text-[#4B4B4B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all border-b border-gray-50 dark:border-gray-800">Dismiss Report</button>
-                  <button className="w-full px-6 py-3 text-left text-[12px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all">Delete</button>
+                  <button disabled={reportData.targetType === 'user' || isUpdating} onClick={() => void handleAction('remove_content')} className="w-full px-6 py-3 text-left text-[12px] font-bold text-[#4B4B4B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all border-b border-gray-50 dark:border-gray-800 disabled:opacity-40">Remove Content</button>
+                  <button disabled={isUpdating} onClick={() => void handleAction('suspend_user')} className="w-full px-6 py-3 text-left text-[12px] font-bold text-[#4B4B4B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all border-b border-gray-50 dark:border-gray-800 disabled:opacity-40">Banned User</button>
+                  <button disabled={isUpdating} onClick={() => void handleAction('dismiss')} className="w-full px-6 py-3 text-left text-[12px] font-bold text-[#4B4B4B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all border-b border-gray-50 dark:border-gray-800 disabled:opacity-40">Dismiss Report</button>
+                  <button disabled={isUpdating} onClick={handleDelete} className="w-full px-6 py-3 text-left text-[12px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all disabled:opacity-40">Delete</button>
                 </div>
               )}
 
             </div>
-            <button className="px-8 py-2.5 bg-gray-200/50 text-gray-500 text-sm font-bold rounded-xl hover:bg-gray-200 transition-all">
+            <button onClick={() => navigate('/report')} className="px-8 py-2.5 bg-gray-200/50 text-gray-500 text-sm font-bold rounded-xl hover:bg-gray-200 transition-all">
               Cancel
             </button>
-            <button className="px-8 py-2.5 bg-[#6D67E4] text-white text-sm font-bold rounded-xl hover:bg-[#5B55C9] transition-all shadow-lg shadow-[#6D67E4]/20">
+            <button disabled={isUpdating} onClick={() => void loadReport()} className="px-8 py-2.5 bg-[#6D67E4] text-white text-sm font-bold rounded-xl hover:bg-[#5B55C9] transition-all shadow-lg shadow-[#6D67E4]/20 disabled:opacity-50">
               Update
             </button>
           </div>
@@ -99,9 +130,9 @@ const ReportDetails = () => {
           <div className="space-y-6">
             <h3 className="text-xl font-bold text-[#1A1A4B] dark:text-white transition-colors">Reported Content</h3>
             <div className="bg-white dark:bg-[#1E1E2D] rounded-[32px] p-6 shadow-sm border border-gray-50 dark:border-gray-800 space-y-6 transition-colors">
-              <div className="aspect-[16/10] rounded-[24px] overflow-hidden">
-                <img src={reportData.content.image} className="w-full h-full object-cover" />
-              </div>
+              {reportData.content.image && <div className="aspect-[16/10] rounded-[24px] overflow-hidden">
+                <img src={reportData.content.image} alt="Reported content" className="w-full h-full object-cover" />
+              </div>}
               <p className="text-[14px] leading-relaxed text-gray-400 font-medium">
                 {reportData.content.description}
               </p>
@@ -118,7 +149,7 @@ const ReportDetails = () => {
               <div className="space-y-4">
                 <h3 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">Reported User</h3>
                 <div className="flex items-center gap-4 bg-white dark:bg-[#1E1E2D] p-4 rounded-2xl border border-gray-50 dark:border-gray-800 shadow-sm transition-colors">
-                  <img src={reportData.reportedUser.avatar} className="w-12 h-12 rounded-full object-cover" />
+                  <img src={reportData.reportedUser.avatar} alt={reportData.reportedUser.name} className="w-12 h-12 rounded-full object-cover" />
                   <div>
                     <p className="font-bold text-[#1A1A4B] dark:text-white transition-colors">{reportData.reportedUser.name}</p>
                     <p className="text-sm text-gray-400">{reportData.reportedUser.username}</p>
@@ -135,7 +166,7 @@ const ReportDetails = () => {
                   <div className="space-y-4">
                     <h3 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">Reported By</h3>
                     <div className="flex items-center gap-4 bg-white dark:bg-[#1E1E2D] p-4 rounded-2xl border border-gray-50 dark:border-gray-800 shadow-sm transition-colors">
-                      <img src={report.by.avatar} className="w-12 h-12 rounded-full object-cover" />
+                      <img src={report.by.avatar} alt={report.by.name} className="w-12 h-12 rounded-full object-cover" />
                       <div>
                         <p className="font-bold text-[#1A1A4B] dark:text-white transition-colors">{report.by.name}</p>
                         <p className="text-sm text-gray-400">{report.by.username}</p>

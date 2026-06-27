@@ -51,14 +51,8 @@ const Analytics = () => {
       pillColor: 'bg-green-50 text-green-400',
     },
     {
-      title: 'Mooment Credits',
-      value: '$200.00',
-      change: '+ 5%',
-      pillColor: 'bg-green-50 text-green-400',
-    },
-    {
       title: 'Total Revenue',
-      value: '$720.00',
+      value: '$520.00',
       showIcon: true,
       icon: Settings2,
     }

@@ -109,38 +109,56 @@ const Header = ({ showDrawer }) => {
         </div>
         <div className="flex items-center gap-6">
           <button
-            className="relative p-2.5 transition bg-gray-50 dark:bg-[#2D2D3F] rounded-xl hover:bg-gray-100 dark:hover:bg-[#3D3D4F] text-gray-400"
             onClick={() => setShowNotifications((prev) => !prev)}
+            className={`relative p-2.5 rounded-xl transition-all duration-300 border text-gray-400 hover:text-[#6D67E4] dark:hover:text-indigo-400 focus:outline-none ${
+              showNotifications 
+                ? 'bg-[#E8EBFD] dark:bg-indigo-600/20 text-[#6D67E4] dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30 shadow-md shadow-indigo-500/5' 
+                : 'bg-white dark:bg-[#2D2D3F] border-gray-100 dark:border-gray-800/80 hover:border-gray-200 dark:hover:border-gray-700 shadow-sm hover:shadow-md'
+            }`}
           >
-            <Bell className="text-xl" />
+            <Bell size={18} />
             {notificationsCount > 0 && (
-              <span className="absolute top-2.5 right-2.5 bg-red-500 h-2 w-2 rounded-full border border-white dark:border-[#1E1E2D]"></span>
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[9px] font-extrabold text-white ring-2 ring-white dark:ring-[#1E1E2D] shadow-md shadow-rose-500/20 animate-in zoom-in duration-300">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-rose-450 opacity-75 animate-ping" />
+                <span className="relative z-10">{notificationsCount}</span>
+              </span>
             )}
           </button>
         </div>
       </div>
+
       {showNotifications && (
-        <div className="absolute right-6 top-[88px] z-[60] p-6 bg-white dark:bg-[#1E1E2D] rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 w-80 animate-in fade-in zoom-in duration-200">
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-gray-50 dark:border-gray-800">
-            <h2 className="text-lg font-bold text-[#1A1A4B] dark:text-white">Notifications</h2>
-            <span className="px-2 py-0.5 bg-red-50 dark:bg-red-900/30 text-red-500 text-[10px] font-bold rounded-full">5 NEW</span>
+        <div className="absolute right-6 top-[88px] z-[60] p-6 bg-white dark:bg-[#1E1E2D] rounded-[28px] shadow-2xl border border-gray-100 dark:border-gray-800/80 w-80 animate-in fade-in zoom-in-95 duration-200">
+          <div className="flex items-center justify-between pb-4 mb-4 border-b border-gray-100 dark:border-gray-800/80">
+            <h2 className="text-base font-extrabold text-[#1A1A4B] dark:text-white">Notifications</h2>
+            <span className="px-2.5 py-1 bg-rose-500/10 text-rose-600 dark:text-rose-450 text-[10px] font-extrabold rounded-full tracking-wider uppercase">
+              {notificationsCount} New
+            </span>
           </div>
-          <div className="space-y-6">
+
+          <div className="space-y-3">
             {notifications.map((item, index) => (
-              <div key={index} className="flex items-start gap-4">
-                <div className="bg-[#F8F9FD] dark:bg-[#2D2D3F] p-2.5 rounded-xl text-[#6D67E4]">
-                  <Bell size={18} />
+              <div key={index} className="flex items-start gap-3.5 p-2 -mx-2 rounded-2xl hover:bg-gray-50/50 dark:hover:bg-[#2D2D3F]/50 transition-colors duration-200 cursor-pointer group">
+                <div className="bg-indigo-50 dark:bg-indigo-500/10 p-2.5 rounded-xl text-[#6D67E4] dark:text-indigo-400 transition-all duration-300 group-hover:scale-105">
+                  <Bell size={16} />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[13px] font-bold text-[#5C5C8A] dark:text-gray-200 leading-tight">
+                  <p className="text-[13px] font-semibold text-gray-700 dark:text-gray-200 leading-snug group-hover:text-[#6D67E4] dark:group-hover:text-indigo-400 transition-colors">
                     {item.message}
                   </p>
-                  <p className="text-[11px] text-gray-300 font-medium">{item.time}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold">{item.time}</p>
                 </div>
               </div>
             ))}
           </div>
-          <button className="mt-8 w-full bg-[#1A1A4B] dark:bg-indigo-600 text-white py-3.5 rounded-2xl text-sm font-bold hover:bg-black dark:hover:bg-indigo-700 transition-all shadow-lg shadow-black/10">
+
+          <button 
+            onClick={() => {
+              setShowNotifications(false);
+              navigate('/support-center');
+            }}
+            className="mt-6 w-full bg-[#454070] dark:bg-indigo-600 text-white py-3 rounded-xl text-xs font-bold hover:bg-[#34305c] dark:hover:bg-indigo-750 transition-all shadow-md shadow-indigo-500/10"
+          >
             View All Notifications
           </button>
         </div>

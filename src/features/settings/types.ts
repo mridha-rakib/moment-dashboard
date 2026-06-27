@@ -40,41 +40,6 @@ export interface LegalDocumentResponse {
   document: LegalDocument;
 }
 
-export interface MoomentCreditPackage {
-  id: string;
-  name: string;
-  credits: number;
-  priceUsd: number;
-  commissionPercent: number;
-  sortOrder: number;
-}
-
-export interface MoomentCreditSettings {
-  id: string | null;
-  title: string;
-  subtitle: string;
-  packages: MoomentCreditPackage[];
-  lastModifiedBy?: LegalDocumentModifier;
-  lastModifiedAt?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface SaveMoomentCreditSettingsPayload {
-  packages: Array<{
-    id?: string;
-    name: string;
-    credits: number;
-    priceUsd: number;
-    commissionPercent: number;
-    sortOrder?: number;
-  }>;
-}
-
-export interface MoomentCreditSettingsResponse {
-  settings: MoomentCreditSettings;
-}
-
 export interface PricingSettingsValues {
   tax: number;
   creditCardFee: number;

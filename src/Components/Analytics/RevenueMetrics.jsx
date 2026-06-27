@@ -26,7 +26,7 @@ const RevenueMetrics = () => {
       <div className="flex justify-between items-start mb-8">
         <div>
           <h2 className="text-[22px] font-bold text-[#1A1A4B] dark:text-white transition-colors">Revenue Metrics</h2>
-          <p className="text-[14px] text-gray-400 mt-1">Comparison of Products, Tickets, and Mooment Credits</p>
+          <p className="text-[14px] text-gray-400 mt-1">Comparison of Products and Tickets</p>
         </div>
       </div>
 

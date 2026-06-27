@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -15,7 +15,8 @@ import {
   X,
   UserCheck,
   UserX,
-  Building
+  Building,
+  Trash2
 } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { getApiErrorMessage } from '@/shared/api';
@@ -53,24 +54,35 @@ const formatDate = (value) => {
   }).format(date);
 };
 
-const getAvatarUrl = (user) => (
-  user.avatarUrl || `https://i.pravatar.cc/150?u=${encodeURIComponent(user.email || user.id)}`
-);
+const getAvatarUrl = (user) => {
+  if (user.avatarUrl) return user.avatarUrl;
 
-const toUserRow = (user) => ({
-  id: user.id,
-  name: user.name || 'Unnamed user',
-  email: user.email || 'No email',
-  type: formatAccountType(user.accountType),
-  date: formatDate(user.createdAt),
-  status: user.isActive ? 'Active' : 'Suspended',
-  isActive: user.isActive,
-  avatar: getAvatarUrl(user),
-});
+  const initial = (user.name || '?').trim().charAt(0).toUpperCase() || '?';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="100%" height="100%" fill="#E8EBFD"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="#6D67E4" font-family="Arial" font-size="40" font-weight="700">${initial.replace(/[<>&"']/g, '')}</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
+
+const toUserRow = (user) => {
+  return {
+    id: user.id,
+    name: user.name || 'Unnamed user',
+    email: user.email || 'No email',
+    type: formatAccountType(user.accountType),
+    date: formatDate(user.createdAt),
+    status: user.isActive ? 'Active' : 'Suspended',
+    isActive: user.isActive,
+    avatar: getAvatarUrl(user),
+    isDeleted: Boolean(user.isDeleted),
+    totalEvents: Number(user.totalEvents) || 0,
+    completedEvents: Number(user.completedEvents) || 0,
+    cancelledEvents: Number(user.cancelledEvents) || 0,
+  };
+};
 
 const UserManagement = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -80,44 +92,25 @@ const UserManagement = () => {
   const [pagination, setPagination] = useState(defaultPagination);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState(null);
+  const requestIdRef = useRef(0);
 
   // Statistics counters
   const [stats, setStats] = useState({ total: 0, active: 0, suspended: 0, business: 0 });
   const [isStatsLoading, setIsStatsLoading] = useState(false);
 
-  const loadStats = useCallback(async () => {
-    setIsStatsLoading(true);
-    try {
-      const [totalRes, activeRes, suspendedRes, businessRes] = await Promise.all([
-        userManagementService.listUsers({ page: 1, limit: 1, role: 'user' }),
-        userManagementService.listUsers({ page: 1, limit: 1, role: 'user', isActive: true }),
-        userManagementService.listUsers({ page: 1, limit: 1, role: 'user', isActive: false }),
-        userManagementService.listUsers({ page: 1, limit: 1, role: 'user', accountType: 'business' }),
-      ]);
-      setStats({
-        total: totalRes.pagination.total || 0,
-        active: activeRes.pagination.total || 0,
-        suspended: suspendedRes.pagination.total || 0,
-        business: businessRes.pagination.total || 0,
-      });
-    } catch (err) {
-      console.error('Error loading stats:', err);
-    } finally {
-      setIsStatsLoading(false);
-    }
-  }, []);
-
   const loadUsers = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
+    setIsStatsLoading(true);
     setError(null);
 
     try {
       const params = {
         page: currentPage,
         limit: itemsPerPage,
-        role: 'user',
-        ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
+        ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
       };
 
       if (statusFilter === 'active') params.isActive = true;
@@ -127,27 +120,46 @@ const UserManagement = () => {
 
       const result = await userManagementService.listUsers(params);
 
+      if (requestId !== requestIdRef.current) return;
+
       setUsers(result.users);
       setPagination(result.pagination);
+      setStats(result.stats);
+      if (result.pagination.totalPages > 0 && currentPage > result.pagination.totalPages) {
+        setCurrentPage(result.pagination.totalPages);
+      }
     } catch (loadError) {
+      if (requestId !== requestIdRef.current) return;
       setUsers([]);
       setPagination(defaultPagination);
       setError(getApiErrorMessage(loadError, 'Unable to load users.'));
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+        setIsStatsLoading(false);
+      }
     }
-  }, [currentPage, searchTerm, statusFilter, typeFilter]);
+  }, [currentPage, debouncedSearch, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   useEffect(() => {
     void loadUsers();
   }, [loadUsers]);
 
-  useEffect(() => {
-    void loadStats();
-  }, [loadStats]);
-
   const totalPages = pagination.totalPages;
   const currentItems = useMemo(() => users.map(toUserRow), [users]);
+  const visiblePages = useMemo(() => {
+    const start = Math.max(1, Math.min(currentPage - 2, Math.max(totalPages - 4, 1)));
+    return Array.from({ length: Math.min(totalPages, 5) }, (_, index) => start + index);
+  }, [currentPage, totalPages]);
 
   const handlePageChange = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -163,19 +175,62 @@ const UserManagement = () => {
   const handleStatusToggle = async () => {
     if (!selectedUser) return;
 
+    const previousUsers = users;
+    const previousStats = stats;
+    const nextIsActive = !selectedUser.isActive;
     setIsUpdatingStatus(true);
+    setUsers((current) => current.map((user) => (
+      user.id === selectedUser.id ? { ...user, isActive: nextIsActive } : user
+    )));
+    setStats((current) => ({
+      ...current,
+      active: Math.max(0, current.active + (nextIsActive ? 1 : -1)),
+      suspended: Math.max(0, current.suspended + (nextIsActive ? -1 : 1)),
+    }));
+    setIsActionModalOpen(false);
+    setSelectedUser(null);
 
     try {
       await userManagementService.updateUser(selectedUser.id, {
-        isActive: !selectedUser.isActive,
+        isActive: nextIsActive,
       });
-      setIsActionModalOpen(false);
-      setSelectedUser(null);
-      await Promise.all([loadUsers(), loadStats()]);
     } catch (statusError) {
+      setUsers(previousUsers);
+      setStats(previousStats);
       window.alert(getApiErrorMessage(statusError, 'Unable to update user status.'));
     } finally {
       setIsUpdatingStatus(false);
+      await loadUsers();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedUser || !window.confirm(`Delete ${selectedUser.name}'s account? Personal data will be anonymized.`)) return;
+
+    const previousUsers = users;
+    const previousStats = stats;
+    setIsDeleting(true);
+    setUsers((current) => current.filter((user) => user.id !== selectedUser.id));
+    setPagination((current) => ({ ...current, total: Math.max(0, current.total - 1) }));
+    setStats((current) => ({
+      ...current,
+      total: Math.max(0, current.total - 1),
+      active: Math.max(0, current.active - (selectedUser.isActive ? 1 : 0)),
+      suspended: Math.max(0, current.suspended - (selectedUser.isActive ? 0 : 1)),
+      business: Math.max(0, current.business - (selectedUser.type === 'Business' ? 1 : 0)),
+    }));
+    setIsActionModalOpen(false);
+    setSelectedUser(null);
+
+    try {
+      await userManagementService.deleteUser(selectedUser.id);
+    } catch (deleteError) {
+      setUsers(previousUsers);
+      setStats(previousStats);
+      window.alert(getApiErrorMessage(deleteError, 'Unable to delete user.'));
+    } finally {
+      setIsDeleting(false);
+      await loadUsers();
     }
   };
 
@@ -349,27 +404,31 @@ const UserManagement = () => {
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Name</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Account Type</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Joining Date</th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Total Events</th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Completed Events</th>
+                <th className="px-8 py-5 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Cancelled Events</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Account Status</th>
                 <th className="px-8 py-5 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {isLoading && (
-                <tr>
-                  <td colSpan="5" className="px-8 py-14">
-                    <div className="flex items-center justify-center gap-3 text-xs font-bold text-gray-400">
-                      <Spinner className="size-4 text-[#6D67E4]" />
-                      Loading users...
-                    </div>
-                  </td>
-                </tr>
+                Array.from({ length: itemsPerPage }, (_, index) => (
+                  <tr key={`skeleton-${index}`} className="animate-pulse">
+                    <td className="px-8 py-5"><div className="flex items-center gap-4"><div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800" /><div className="space-y-2"><div className="h-3 w-28 rounded bg-gray-100 dark:bg-gray-800" /><div className="h-2.5 w-36 rounded bg-gray-100 dark:bg-gray-800" /></div></div></td>
+                    {Array.from({ length: 7 }, (_, cellIndex) => <td key={cellIndex} className="px-8 py-5"><div className="h-3 w-16 mx-auto rounded bg-gray-100 dark:bg-gray-800" /></td>)}
+                  </tr>
+                ))
               )}
 
               {!isLoading && error && (
                 <tr>
-                  <td colSpan="5" className="px-8 py-14">
-                    <div className="text-center text-xs font-bold text-red-500">
-                      {error}
+                  <td colSpan="8" className="px-8 py-14">
+                    <div className="text-center text-xs font-bold text-red-500 space-y-3">
+                      <p>{error}</p>
+                      <button onClick={() => void loadUsers()} className="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 transition-colors">
+                        Try Again
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -377,7 +436,7 @@ const UserManagement = () => {
 
               {!isLoading && !error && currentItems.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="px-8 py-16 text-center">
+                  <td colSpan="8" className="px-8 py-16 text-center">
                     <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-4">
                       <div className="p-4 bg-gray-50 dark:bg-[#2D2D3F] rounded-full text-gray-400 dark:text-gray-500">
                         <Users size={28} />
@@ -411,6 +470,10 @@ const UserManagement = () => {
                       <img
                         src={user.avatar}
                         alt={user.name}
+                        onError={(event) => {
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src = getAvatarUrl({ name: user.name });
+                        }}
                         className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-50 dark:ring-gray-800/40"
                       />
                       <div>
@@ -431,6 +494,21 @@ const UserManagement = () => {
                   </td>
                   <td className="px-8 py-5">
                     <span className="font-medium text-[#4B4B4B] dark:text-gray-400 text-[13px] transition-colors">{user.date}</span>
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    <span className="font-bold text-gray-700 dark:text-gray-200 text-[13px]">
+                      {user.totalEvents}
+                    </span>
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    <span className="font-bold text-emerald-600 dark:text-emerald-450 text-[13px] bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-lg">
+                      {user.completedEvents}
+                    </span>
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    <span className="font-bold text-rose-600 dark:text-rose-450 text-[13px] bg-rose-50 dark:bg-rose-500/10 px-2.5 py-1 rounded-lg">
+                      {user.cancelledEvents}
+                    </span>
                   </td>
                   <td className="px-8 py-5">
                     {user.status === 'Active' ? (
@@ -474,17 +552,17 @@ const UserManagement = () => {
                 <ChevronLeft size={16} />
               </button>
 
-              {[...Array(totalPages)].map((_, i) => (
+              {visiblePages.map((pageNumber) => (
                 <button
-                  key={i + 1}
-                  onClick={() => handlePageChange(i + 1)}
+                  key={pageNumber}
+                  onClick={() => handlePageChange(pageNumber)}
                   className={`w-9 h-9 flex items-center justify-center rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                    currentPage === i + 1
+                    currentPage === pageNumber
                       ? 'bg-[#E8EBFD] dark:bg-indigo-600/20 text-[#6D67E4] dark:text-indigo-400 shadow-sm'
                       : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2D2D3F]'
                   }`}
                 >
-                  {i + 1}
+                  {pageNumber}
                 </button>
               ))}
 
@@ -582,6 +660,15 @@ const UserManagement = () => {
                     Activate Account
                   </>
                 )}
+              </button>
+
+              <button
+                className="flex items-center justify-center gap-3 w-full py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-300 font-bold text-xs rounded-2xl hover:bg-red-500/10 hover:border-red-500/25 hover:text-red-500 transition-all cursor-pointer"
+                disabled={isDeleting || isUpdatingStatus}
+                onClick={handleDelete}
+              >
+                {isDeleting ? <Spinner className="size-4" /> : <Trash2 size={16} />}
+                Delete Account
               </button>
             </div>
           </div>

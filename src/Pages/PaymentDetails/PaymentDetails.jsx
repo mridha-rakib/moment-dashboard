@@ -13,10 +13,9 @@ const PaymentDetails = () => {
       accountType: 'Personal Account'
     },
     metrics: [
-      { label: 'Mooment Credits', value: '$105.00' },
       { label: 'Product', value: '$45.00' },
       { label: 'Ticket', value: '$105.00' },
-      { label: 'Total', value: '$105.00' }
+      { label: 'Total', value: '$150.00' }
     ]
   };
 

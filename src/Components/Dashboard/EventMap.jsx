@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Plus, Minus, Maximize2 } from 'lucide-react';
+import { Plus, Minus, Maximize2, Minimize2 } from 'lucide-react';
 import Map, { Marker } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import eventImg from '../../assets/image/event.jpg';
@@ -38,6 +38,8 @@ const hexToRgba = (hex, alpha) => {
 
 const EventMap = () => {
   const mapRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [viewState, setViewState] = useState({
     latitude: 38.859,
     longitude: -77.051,
@@ -45,18 +47,106 @@ const EventMap = () => {
   });
 
   const handleZoomIn = useCallback(() => {
-    setViewState(prev => ({
-      ...prev,
-      zoom: Math.min(prev.zoom + 1, 20)
-    }));
+    if (mapRef.current) {
+      const map = mapRef.current;
+      map.easeTo({
+        center: map.getCenter(),
+        zoom: map.getZoom() + 1,
+        duration: 300
+      });
+    } else {
+      setViewState(prev => ({
+        ...prev,
+        zoom: Math.min(prev.zoom + 1, 20)
+      }));
+    }
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setViewState(prev => ({
-      ...prev,
-      zoom: Math.max(prev.zoom - 1, 1)
-    }));
+    if (mapRef.current) {
+      const map = mapRef.current;
+      map.easeTo({
+        center: map.getCenter(),
+        zoom: Math.max(map.getZoom() - 1, 1),
+        duration: 300
+      });
+    } else {
+      setViewState(prev => ({
+        ...prev,
+        zoom: Math.max(prev.zoom - 1, 1)
+      }));
+    }
   }, []);
+
+  const handleMarkerClick = useCallback((event) => {
+    if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: [event.lng, event.lat],
+        zoom: 16,
+        duration: 1000,
+        essential: true
+      });
+    }
+  }, []);
+
+  const handleToggleMaximize = useCallback(() => {
+    const element = containerRef.current;
+    if (!element) return;
+
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (element.requestFullscreen) {
+        element.requestFullscreen().catch(() => {
+          setIsMaximized(true);
+        });
+      } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+      } else {
+        setIsMaximized(true);
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else {
+        setIsMaximized(false);
+      }
+    }
+  }, []);
+
+  // Listen to native fullscreen changes to sync React state
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = 
+        document.fullscreenElement === containerRef.current || 
+        document.webkitFullscreenElement === containerRef.current;
+      setIsMaximized(isCurrentlyFullscreen);
+      setTimeout(() => {
+        mapRef.current?.resize();
+      }, 150);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Escape key fallback support for CSS-only fullscreen mode
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isMaximized && !document.fullscreenElement && !document.webkitFullscreenElement) {
+        setIsMaximized(false);
+        setTimeout(() => {
+          mapRef.current?.resize();
+        }, 100);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMaximized]);
 
   const events = [
     { id: 1, name: 'Steve Hard', lat: 38.8719, lng: -77.0563, image: eventImg, category: 'Music' },
@@ -74,7 +164,14 @@ const EventMap = () => {
     const glowFade = hexToRgba(color, 0.25);
 
     return (
-      <div className="relative group cursor-pointer" style={{ transform: 'translate(-32px, -32px)', width: '250px' }}>
+      <div 
+        onClick={(e) => {
+          e.stopPropagation();
+          handleMarkerClick(event);
+        }}
+        className="relative group cursor-pointer" 
+        style={{ transform: 'translate(-32px, -32px)', width: '250px' }}
+      >
         <div className="flex items-center">
           {/* Category Glow */}
           <div
@@ -118,7 +215,11 @@ const EventMap = () => {
   };
 
   return (
-    <div className="relative w-full h-full min-h-[600px] bg-[#000000] rounded-[32px] overflow-hidden border border-white/5 shadow-2xl group">
+    <div ref={containerRef} className={`relative w-full h-full overflow-hidden border border-gray-150 dark:border-white/5 shadow-md dark:shadow-2xl group transition-all duration-300 ${
+      isMaximized 
+        ? "fixed inset-0 z-[120] w-screen h-screen rounded-none bg-slate-900" 
+        : "min-h-[600px] rounded-[32px] bg-slate-100 dark:bg-black"
+    }`}>
       <Map
         {...viewState}
         ref={mapRef}
@@ -143,20 +244,24 @@ const EventMap = () => {
       </Map>
 
       {/* Controls */}
-      <button className="absolute top-8 right-8 p-4 bg-black/70 backdrop-blur-xl border border-white/10 rounded-[22px] text-white/80 hover:text-white hover:bg-black/90 transition-all z-30 shadow-2xl active:scale-95">
-        <Maximize2 size={20} />
+      <button 
+        onClick={handleToggleMaximize}
+        className="absolute top-6 right-6 p-3.5 bg-white/80 dark:bg-black/70 backdrop-blur-md border border-gray-200/55 dark:border-white/10 rounded-2xl text-gray-705 dark:text-white/80 hover:text-gray-900 dark:hover:text-white hover:bg-white dark:hover:bg-black/90 transition-all duration-300 z-30 shadow-lg dark:shadow-2xl hover:scale-105 active:scale-95"
+        title={isMaximized ? "Restore map" : "Maximize map"}
+      >
+        {isMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
       </button>
 
-      <div className="absolute bottom-8 right-8 flex flex-col gap-3 z-30">
-        <button onClick={handleZoomIn} className="p-4 bg-black/70 backdrop-blur-xl border border-white/10 rounded-[22px] text-white/80 hover:text-white hover:bg-black/90 transition-all shadow-2xl active:scale-95">
-          <Plus size={20} />
+      <div className="absolute bottom-6 right-6 flex flex-col gap-2.5 z-30">
+        <button onClick={handleZoomIn} className="p-3.5 bg-white/80 dark:bg-black/70 backdrop-blur-md border border-gray-200/55 dark:border-white/10 rounded-2xl text-gray-755 dark:text-white/80 hover:text-gray-900 dark:hover:text-white hover:bg-white dark:hover:bg-black/90 transition-all duration-300 shadow-lg dark:shadow-2xl hover:scale-105 active:scale-95">
+          <Plus size={18} />
         </button>
-        <button onClick={handleZoomOut} className="p-4 bg-black/70 backdrop-blur-xl border border-white/10 rounded-[22px] text-white/80 hover:text-white hover:bg-black/90 transition-all shadow-2xl active:scale-95">
-          <Minus size={20} />
+        <button onClick={handleZoomOut} className="p-3.5 bg-white/80 dark:bg-black/70 backdrop-blur-md border border-gray-200/55 dark:border-white/10 rounded-2xl text-gray-755 dark:text-white/80 hover:text-gray-900 dark:hover:text-white hover:bg-white dark:hover:bg-black/90 transition-all duration-300 shadow-lg dark:shadow-2xl hover:scale-105 active:scale-95">
+          <Minus size={18} />
         </button>
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-5 py-2 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full text-[11px] font-black text-white/70 z-30 tracking-widest shadow-2xl">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/85 dark:bg-black/60 backdrop-blur-md border border-gray-200/55 dark:border-white/10 rounded-full text-[10px] font-extrabold text-gray-755 dark:text-white/70 z-30 tracking-widest shadow-md dark:shadow-2xl">
         {Math.round((viewState.zoom / 20) * 100)}%
       </div>
     </div>

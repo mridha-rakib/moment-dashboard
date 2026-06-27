@@ -4,10 +4,9 @@ import { Settings as SettingsIcon } from 'lucide-react';
 // Sub-components
 import SettingsTabs from '../../Components/Settings/SettingsTabs';
 import GeneralSettings from '../../Components/Settings/GeneralSettings';
-import MoomentCredit from '../../Components/Settings/MoomentCredit';
 import Pricing from '../../Components/Settings/Pricing';
 import DynamicLegalEditor from '../../Components/Settings/DynamicLegalEditor';
-import { useLegalSettingsStore, useMoomentCreditStore, usePricingSettingsStore } from '../../features/settings';
+import { useLegalSettingsStore, usePricingSettingsStore } from '../../features/settings';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('General');
@@ -16,12 +15,6 @@ const Settings = () => {
   const fetchLegalDocument = useLegalSettingsStore((state) => state.fetchLegalDocument);
   const saveLegalClauses = useLegalSettingsStore((state) => state.saveLegalClauses);
   const savingLegalDocuments = useLegalSettingsStore((state) => state.isSaving);
-  const moomentCreditSettings = useMoomentCreditStore((state) => state.settings);
-  const fetchMoomentCreditSettings = useMoomentCreditStore((state) => state.fetchSettings);
-  const saveMoomentCreditPackages = useMoomentCreditStore((state) => state.savePackages);
-  const isMoomentCreditLoading = useMoomentCreditStore((state) => state.isLoading);
-  const isMoomentCreditSaving = useMoomentCreditStore((state) => state.isSaving);
-  const moomentCreditError = useMoomentCreditStore((state) => state.error);
   const pricingSettings = usePricingSettingsStore((state) => state.settings);
   const fetchPricingSettings = usePricingSettingsStore((state) => state.fetchSettings);
   const savePricingValues = usePricingSettingsStore((state) => state.saveValues);
@@ -30,9 +23,6 @@ const Settings = () => {
   const pricingError = usePricingSettingsStore((state) => state.error);
 
   // States that need to persist across tab switches
-  const [creditPackages, setCreditPackages] = useState([
-    { id: 'draft-default', name: '25 Mooments credit for', credits: 25, priceUsd: 26.25, commissionPercent: 5, sortOrder: 0 }
-  ]);
   const [pricingValues, setPricingValues] = useState({
     tax: 5,
     creditCardFee: 5,
@@ -45,13 +35,8 @@ const Settings = () => {
   useEffect(() => {
     void fetchLegalDocument('terms');
     void fetchLegalDocument('privacy');
-    void fetchMoomentCreditSettings();
     void fetchPricingSettings();
-  }, [fetchLegalDocument, fetchMoomentCreditSettings, fetchPricingSettings]);
-
-  useEffect(() => {
-    setCreditPackages(moomentCreditSettings.packages);
-  }, [moomentCreditSettings.packages]);
+  }, [fetchLegalDocument, fetchPricingSettings]);
 
   useEffect(() => {
     setPricingValues({
@@ -86,14 +71,6 @@ const Settings = () => {
     return `Last modified by ${modifiedBy} on ${modifiedAt}`;
   };
 
-  const handleSaveMoomentCreditPackages = async () => {
-    const savedSettings = await saveMoomentCreditPackages(creditPackages);
-
-    if (savedSettings) {
-      setCreditPackages(savedSettings.packages);
-    }
-  };
-
   const handleSavePricingValues = async () => {
     const savedSettings = await savePricingValues(pricingValues);
 
@@ -126,19 +103,6 @@ const Settings = () => {
             <GeneralSettings />
           )}
 
-
-          {activeTab === 'Mooment Credit' && (
-            <MoomentCredit
-              creditPackages={creditPackages}
-              setCreditPackages={setCreditPackages}
-              isLoading={isMoomentCreditLoading}
-              isSaving={isMoomentCreditSaving}
-              error={moomentCreditError}
-              onCancel={() => setCreditPackages(moomentCreditSettings.packages)}
-              onSave={handleSaveMoomentCreditPackages}
-              lastModifiedText={formatLastModified(moomentCreditSettings)}
-            />
-          )}
 
           {activeTab === 'Pricing' && (
             <Pricing

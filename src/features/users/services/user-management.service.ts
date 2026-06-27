@@ -1,10 +1,11 @@
 import { AppApiError, httpClient } from "@/shared/api";
 import type { ApiResponse } from "@/shared/api";
-import type { ManagedUser, ProfileEventGroups, UpdateUserPayload, UserListParams, UserListResponse, UsersPagination } from "../types";
+import type { ManagedUser, ProfileEventGroups, UpdateUserPayload, UserListParams, UserListResponse, UserManagementStats, UsersPagination } from "../types";
 import { userManagementEndpoints } from "./user-management.endpoints";
 
 type UsersMeta = Partial<UsersPagination> & {
   pagination?: Partial<UsersPagination>;
+  stats?: Partial<UserManagementStats>;
 };
 
 const normalizeUser = (user: ManagedUser): ManagedUser => ({
@@ -12,6 +13,10 @@ const normalizeUser = (user: ManagedUser): ManagedUser => ({
   accountType: user.accountType ?? "personal",
   isActive: Boolean(user.isActive),
   emailVerified: Boolean(user.emailVerified),
+  isDeleted: Boolean(user.isDeleted),
+  totalEvents: Number(user.totalEvents) || 0,
+  completedEvents: Number(user.completedEvents) || 0,
+  cancelledEvents: Number(user.cancelledEvents) || 0,
 });
 
 const normalizePagination = (
@@ -45,9 +50,18 @@ const unwrapUsers = (response: ApiResponse<ManagedUser[]>, params: UserListParam
     });
   }
 
+  const meta = response.meta as UsersMeta | undefined;
+  const stats = meta?.stats;
+
   return {
     users: response.data.map(normalizeUser),
-    pagination: normalizePagination(params, response.data.length, response.meta as UsersMeta | undefined),
+    pagination: normalizePagination(params, response.data.length, meta),
+    stats: {
+      total: Number(stats?.total) || 0,
+      active: Number(stats?.active) || 0,
+      suspended: Number(stats?.suspended) || 0,
+      business: Number(stats?.business) || 0,
+    },
   };
 };
 
@@ -81,6 +95,10 @@ export const userManagementService = {
     const response = await httpClient.patch<ApiResponse<ManagedUser>>(userManagementEndpoints.user(id), payload);
 
     return unwrapUser(response.data);
+  },
+
+  async deleteUser(id: string): Promise<void> {
+    await httpClient.delete(userManagementEndpoints.user(id));
   },
 
   async getUserEvents(id: string): Promise<ProfileEventGroups> {

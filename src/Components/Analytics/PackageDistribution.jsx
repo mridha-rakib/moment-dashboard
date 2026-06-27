@@ -2,9 +2,8 @@ import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 const data = [
-  { name: 'Ticket', value: 55, color: '#3B2B68', count: '6.8k' },
-  { name: 'Mooment Credits', value: 30, color: '#9747FF', count: '3.7k' },
-  { name: 'Products', value: 15, color: '#D4C4FC', count: '1.9k' },
+  { name: 'Ticket', value: 70, color: '#3B2B68', count: '8.7k' },
+  { name: 'Products', value: 30, color: '#D4C4FC', count: '3.7k' },
 ];
 
 const PackageDistribution = () => {

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MoreVertical, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { Search, MoreVertical, ChevronLeft, ChevronRight, Users, Eye, ShieldAlert, X, DollarSign, CreditCard, Tag } from 'lucide-react';
 
 const PaymentManagement = () => {
   const navigate = useNavigate();
@@ -13,11 +13,11 @@ const PaymentManagement = () => {
   const paymentData = useMemo(() => [
     { id: 1, name: 'Theresa Webb', email: 'bill.sanders@example.com', type: 'Personal', product: 'Ticket', date: 'Oct 25, 2026', amount: '$50.00', avatar: 'https://i.pravatar.cc/150?u=theresa' },
     { id: 2, name: 'Marvin McKinney', email: 'tim.jennings@example.com', type: 'Personal', product: 'Product', date: 'Oct 25, 2026', amount: '$50.00', avatar: 'https://i.pravatar.cc/150?u=marvin' },
-    { id: 3, name: 'Courtney Henry', email: 'georgia.young@example.com', type: 'Business', product: 'Mooment Credits', date: 'Oct 25, 2026', amount: '$50.00', avatar: 'https://i.pravatar.cc/150?u=courtney' },
+    { id: 3, name: 'Courtney Henry', email: 'georgia.young@example.com', type: 'Business', product: 'Ticket', date: 'Oct 25, 2026', amount: '$50.00', avatar: 'https://i.pravatar.cc/150?u=courtney' },
     { id: 4, name: 'Steve Herd', email: 'sarah.c@vesioh.com', type: 'Business', product: 'Ticket', date: 'Oct 25, 2026', amount: '$50.00', avatar: 'https://i.pravatar.cc/150?u=steve' },
     { id: 5, name: 'Jane Cooper', email: 'jane.cooper@example.com', type: 'Personal', product: 'Product', date: 'Oct 26, 2026', amount: '$45.00', avatar: 'https://i.pravatar.cc/150?u=jane' },
     { id: 6, name: 'Cody Fisher', email: 'cody.fisher@example.com', type: 'Business', product: 'Ticket', date: 'Oct 26, 2026', amount: '$75.00', avatar: 'https://i.pravatar.cc/150?u=cody' },
-    { id: 7, name: 'Esther Howard', email: 'esther.howard@example.com', type: 'Personal', product: 'Mooment Credits', date: 'Oct 27, 2026', amount: '$30.00', avatar: 'https://i.pravatar.cc/150?u=esther' },
+    { id: 7, name: 'Esther Howard', email: 'esther.howard@example.com', type: 'Personal', product: 'Product', date: 'Oct 27, 2026', amount: '$30.00', avatar: 'https://i.pravatar.cc/150?u=esther' },
     { id: 8, name: 'Jenny Wilson', email: 'jenny.wilson@example.com', type: 'Business', product: 'Product', date: 'Oct 27, 2026', amount: '$120.00', avatar: 'https://i.pravatar.cc/150?u=jenny' },
   ], []);
 
@@ -164,30 +164,77 @@ const PaymentManagement = () => {
         </div>
       </div>
 
-      {/* Action Modal */}
-      {isActionModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
-          <div 
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+      {/* Premium Action Modal */}
+      {isActionModalOpen && selectedPayment && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Blur Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-md transition-opacity"
             onClick={() => setIsActionModalOpen(false)}
           ></div>
-          <div className="relative bg-white dark:bg-[#1E1E2D] rounded-3xl p-8 w-full max-w-[320px] shadow-2xl animate-in fade-in zoom-in duration-200">
-            <p className="text-[14px] text-gray-400 font-medium mb-6">more option</p>
-            <div className="space-y-6 text-center">
-              <button 
-                className="block w-full text-[28px] font-bold text-[#1A1A4B] dark:text-white hover:text-[#6D67E4] dark:hover:text-indigo-400 transition-colors"
+
+          {/* Modal Card */}
+          <div className="relative bg-white dark:bg-[#1E1E2D] rounded-[32px] border border-gray-150 dark:border-gray-800 p-8 w-full max-w-[360px] shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            {/* Close Button */}
+            <button
+              onClick={() => setIsActionModalOpen(false)}
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+
+            {/* User Identity Panel */}
+            <div className="flex flex-col items-center text-center mt-2 mb-6">
+              <img
+                src={selectedPayment.avatar}
+                alt={selectedPayment.name}
+                className="w-16 h-16 rounded-full object-cover border-2 border-indigo-500/20 shadow-md mb-3"
+              />
+              <h3 className="text-lg font-bold text-[#1A1A4B] dark:text-white leading-tight">
+                {selectedPayment.name}
+              </h3>
+              <p className="text-xs text-gray-400 mt-1 font-medium">
+                {selectedPayment.email}
+              </p>
+            </div>
+
+            {/* Payment Context */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[11px] font-bold">
+                <DollarSign size={12} />
+                {selectedPayment.amount}
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 text-[#6D67E4] dark:text-indigo-400 rounded-full text-[11px] font-bold">
+                <Tag size={12} />
+                {selectedPayment.product}
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 rounded-full text-[11px] font-bold">
+                <CreditCard size={12} />
+                {selectedPayment.type}
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {/* View Details */}
+              <button
+                className="flex items-center justify-center gap-3 w-full py-3.5 bg-indigo-50 dark:bg-indigo-600/10 text-[#6D67E4] dark:text-indigo-400 font-bold text-xs rounded-2xl hover:bg-[#E8EBFD] dark:hover:bg-indigo-600/20 transition-all cursor-pointer"
                 onClick={() => {
                   navigate(`/payment-details/${selectedPayment.id}`);
                   setIsActionModalOpen(false);
                 }}
               >
-                View
+                <Eye size={16} />
+                View Details
               </button>
-              <button 
-                className="block w-full text-[28px] font-bold text-[#1A1A4B] dark:text-white hover:text-red-500 dark:hover:text-red-400 transition-colors"
+
+              {/* Suspend */}
+              <button
+                className="flex items-center justify-center gap-3 w-full py-3.5 bg-rose-500/10 border border-rose-500/25 dark:border-rose-500/10 text-rose-500 font-bold text-xs rounded-2xl hover:bg-rose-500/20 transition-all cursor-pointer"
                 onClick={() => setIsActionModalOpen(false)}
               >
-                Suspend
+                <ShieldAlert size={16} />
+                Suspend Payment
               </button>
             </div>
           </div>
