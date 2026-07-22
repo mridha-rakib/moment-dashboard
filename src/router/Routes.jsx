@@ -10,6 +10,7 @@ import NewPass from "../Pages/Auth/NewPass/NewPass";
 import Settings from "../Pages/Settings/Settings";
 import PaymentDetails from "../Pages/PaymentDetails/PaymentDetails";
 import Payments from "../Pages/Payments/PaymentManagement";
+import RefundManagement from "../Pages/RefundManagement/RefundManagement";
 import SupportCenter from "../Pages/Support/SupportCenter";
 import SupportMessageDetails from "../Pages/Support/SupportMessageDetails";
 import Analytics from "../Pages/Analytics/Analytics";
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
           { path: "/user-management/:id", element: <UserDetails /> },
           { path: "/event-details/:id", element: <EventDetails /> },
           { path: "/payment-management" , element: <Payments/>},
+          { path: "/refund-management" , element: <RefundManagement/>},
           { path: "/payment-details/:id" , element: <PaymentDetails/>},
           { path: "/support-center", element: <SupportCenter /> },
           { path: "/support-message/:id", element: <SupportMessageDetails /> },

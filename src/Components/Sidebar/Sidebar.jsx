@@ -6,6 +6,7 @@ import {
   Info,
   Settings,
   LogOut,
+  RefreshCcw,
   PanelLeftClose,
   PanelLeftOpen
 } from "lucide-react";
@@ -36,6 +37,7 @@ const Sidebar = ({ closeDrawer, isCollapsed = false, onToggleCollapse }) => {
       items: [
         { icon: <Users size={20} />, label: "User Management", Link: "/user-management" },
         { icon: <HugeiconsIcon icon={CreditCardPosIcon} size={20} />, label: "Payment Management", Link: "/payment-management" },
+        { icon: <RefreshCcw size={20} />, label: "Refund Management", Link: "/refund-management" },
         { icon: <Info size={20} />, label: "Reports", Link: "/report" },
         { icon: <HugeiconsIcon icon={HeadsetIcon} size={20} />, label: "Support Center", Link: "/support-center" },
         { icon: <Settings size={20} />, label: "Settings", Link: "/settings" },

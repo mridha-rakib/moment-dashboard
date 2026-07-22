@@ -1,5 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, MapPin, Maximize2, Minimize2, Minus, Plus, RotateCw } from 'lucide-react';
+import {
+  CalendarClock,
+  CalendarDays,
+  MapPin,
+  Maximize2,
+  Minimize2,
+  Minus,
+  Plus,
+  Radio,
+  RotateCw,
+  Tag,
+  UserRound,
+} from 'lucide-react';
 import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { dashboardService } from '../../features/dashboard';
@@ -32,6 +44,12 @@ const STATUS_LABELS = {
   active: 'Active',
 };
 
+const STATUS_STYLES = {
+  upcoming: 'border-indigo-100 bg-indigo-50 text-indigo-700',
+  live: 'border-rose-100 bg-rose-50 text-rose-700',
+  active: 'border-emerald-100 bg-emerald-50 text-emerald-700',
+};
+
 const getCategoryColor = (category) => CATEGORY_COLORS[category] ?? '#9CA3AF';
 
 const hexToRgba = (hex, alpha) => {
@@ -46,35 +64,117 @@ const formatStartTime = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Start time unavailable';
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
   }).format(date);
 };
 
+const EventArtwork = ({ src }) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => setHasError(false), [src]);
+
+  if (!src || hasError) {
+    return (
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm">
+        <CalendarDays size={26} strokeWidth={1.8} />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      className="h-16 w-16 shrink-0 rounded-2xl border border-white object-cover shadow-sm"
+      src={src}
+      alt=""
+      onError={() => setHasError(true)}
+    />
+  );
+};
+
 const EventDetails = ({ event }) => (
-  <div className="min-w-[220px] max-w-[280px] p-1 text-slate-900">
-    <div className="flex items-start gap-3">
-      {event.bannerImageUrl ? (
-        <img className="h-12 w-12 shrink-0 rounded-xl object-cover" src={event.bannerImageUrl} alt="" />
-      ) : (
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-          <CalendarDays size={21} />
+  <article className="w-[292px] overflow-hidden rounded-[20px] bg-white text-slate-900">
+    <header className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-violet-50 px-4 pb-4 pt-4">
+      <div className="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-indigo-100/60 blur-2xl" />
+      <div className="relative flex items-start gap-3.5">
+        <EventArtwork src={event.bannerImageUrl} />
+        <div className="min-w-0 flex-1 pr-4">
+          <h3
+            className="break-words text-[15px] font-extrabold leading-5 text-slate-900"
+            style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }}
+            title={event.title || 'Untitled Event'}
+          >
+            {event.title || 'Untitled Event'}
+          </h3>
+          <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] ${STATUS_STYLES[event.status] ?? STATUS_STYLES.active}`}>
+            <Radio size={11} strokeWidth={2.5} />
+            {STATUS_LABELS[event.status] ?? 'Active'}
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <div className="space-y-3 border-t border-slate-100 px-4 py-4 text-xs">
+      <div className="flex items-start gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+          <CalendarClock size={16} strokeWidth={2} />
+        </span>
+        <div className="min-w-0 pt-0.5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Date & time</p>
+          <p className="mt-0.5 break-words font-semibold leading-4 text-slate-700">{formatStartTime(event.scheduledAt)}</p>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+          <MapPin size={16} strokeWidth={2} />
+        </span>
+        <div className="min-w-0 pt-0.5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Location</p>
+          <p
+            className="mt-0.5 break-words font-semibold leading-4 text-slate-700"
+            style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden' }}
+            title={event.locationName || 'Location unavailable'}
+          >
+            {event.locationName || 'Location unavailable'}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+          <UserRound size={16} strokeWidth={2} />
+        </span>
+        <div className="min-w-0 pt-0.5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Hosted by</p>
+          <p
+            className="mt-0.5 break-words font-semibold leading-4 text-slate-700"
+            style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }}
+            title={event.hostName || 'Host unavailable'}
+          >
+            {event.hostName || 'Host unavailable'}
+          </p>
+        </div>
+      </div>
+
+      {event.category && (
+        <div className="flex items-start gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+            <Tag size={16} strokeWidth={2} />
+          </span>
+          <div className="min-w-0 pt-0.5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Category</p>
+            <p className="mt-0.5 break-words font-semibold leading-4 text-slate-700">{event.category}</p>
+          </div>
         </div>
       )}
-      <div className="min-w-0">
-        <p className="truncate text-sm font-extrabold">{event.title}</p>
-        <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-indigo-600">
-          {STATUS_LABELS[event.status] ?? 'Active'}
-        </p>
-      </div>
     </div>
-    <div className="mt-3 space-y-1.5 text-xs text-slate-600">
-      <p>{formatStartTime(event.scheduledAt)}</p>
-      <p className="flex items-start gap-1.5"><MapPin size={13} className="mt-0.5 shrink-0" />{event.locationName}</p>
-      {event.hostName && <p>Hosted by {event.hostName}</p>}
-    </div>
-  </div>
+  </article>
 );
 
 const EventMap = () => {
@@ -254,9 +354,11 @@ const EventMap = () => {
           <Popup
             latitude={activeEvent.latitude}
             longitude={activeEvent.longitude}
-            anchor="bottom"
-            offset={42}
+            offset={38}
+            maxWidth="320px"
+            className="event-map-popup"
             closeOnClick={false}
+            focusAfterOpen={false}
             onClose={() => { setSelectedEventId(null); setHoveredEventId(null); }}
           >
             <EventDetails event={activeEvent} />
