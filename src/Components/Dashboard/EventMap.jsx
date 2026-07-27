@@ -16,27 +16,7 @@ import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { dashboardService } from '../../features/dashboard';
 import { appConfig } from '../../shared/config/env';
-
-const CATEGORY_COLORS = {
-  'Music': '#A855F7',
-  'Nightlife': '#EF4444',
-  'Shows & Entertainment': '#E879F9',
-  'Food & Drinks': '#F97316',
-  'Dining Experiences': '#F59E0B',
-  'Food Trucks': '#EA580C',
-  'Social Meetups': '#3B82F6',
-  'Social Pop-ups': '#06B6D4',
-  'Sports & Outdoor': '#22C55E',
-  'Games & Leisure': '#14B8A6',
-  'Learning & Classes': '#6366F1',
-  'Markets & Trade': '#B45309',
-  'Street Performances': '#FF007F',
-  'Religious & Spiritual': '#C084FC',
-  'College Events': '#EAB308',
-  'Premium Experiences': '#F5C518',
-  'Family & Community': '#84CC16',
-  'Other': '#9CA3AF',
-};
+import { getCategoryColor } from '../../shared/eventCategories';
 
 const STATUS_LABELS = {
   upcoming: 'Upcoming',
@@ -49,8 +29,6 @@ const STATUS_STYLES = {
   live: 'border-rose-100 bg-rose-50 text-rose-700',
   active: 'border-emerald-100 bg-emerald-50 text-emerald-700',
 };
-
-const getCategoryColor = (category) => CATEGORY_COLORS[category] ?? '#9CA3AF';
 
 const hexToRgba = (hex, alpha) => {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -97,7 +75,10 @@ const EventArtwork = ({ src }) => {
   );
 };
 
-const EventDetails = ({ event }) => (
+const EventDetails = ({ event }) => {
+  const categories = event.categories?.length ? event.categories : event.category ? [event.category] : [];
+
+  return (
   <article className="w-[292px] overflow-hidden rounded-[20px] bg-white text-slate-900">
     <header className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-violet-50 px-4 pb-4 pt-4">
       <div className="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-indigo-100/60 blur-2xl" />
@@ -162,20 +143,21 @@ const EventDetails = ({ event }) => (
         </div>
       </div>
 
-      {event.category && (
+      {categories.length > 0 && (
         <div className="flex items-start gap-3">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
             <Tag size={16} strokeWidth={2} />
           </span>
           <div className="min-w-0 pt-0.5">
             <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Category</p>
-            <p className="mt-0.5 break-words font-semibold leading-4 text-slate-700">{event.category}</p>
+            <p className="mt-0.5 break-words font-semibold leading-4 text-slate-700">{categories.join(' · ')}</p>
           </div>
         </div>
       )}
     </div>
   </article>
-);
+  );
+};
 
 const EventMap = () => {
   const mapRef = useRef(null);

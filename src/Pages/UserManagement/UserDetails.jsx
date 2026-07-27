@@ -283,7 +283,7 @@ const UserDetails = () => {
             <div className="absolute bottom-5 left-5 right-5 space-y-2">
               {event.categories?.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {event.categories.slice(0, 2).map((cat) => (
+                  {event.categories.map((cat) => (
                     <span key={cat} className="px-2.5 py-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">
                       {cat}
                     </span>

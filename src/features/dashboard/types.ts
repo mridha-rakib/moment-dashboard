@@ -1,3 +1,5 @@
+import type { EventCategory } from "@/shared/eventCategories";
+
 export type AdminMapEventStatus = "upcoming" | "live" | "active";
 
 export interface AdminMapEvent {
@@ -9,7 +11,8 @@ export interface AdminMapEvent {
   latitude: number;
   longitude: number;
   locationName: string;
-  category?: string | null;
+  category?: EventCategory | null;
+  categories: EventCategory[];
   bannerImageUrl?: string | null;
   hostName?: string | null;
 }
