@@ -60,6 +60,7 @@ export type UserManagementStats = {
 export type UpdateUserPayload = Partial<Pick<ManagedUser, "isActive" | "emailVerified">>;
 
 export type EventStatus = "draft" | "published" | "live" | "completed" | "cancelled";
+export type CrowdStatus = "not_busy" | "busy" | "very_busy";
 export type EventPrivacy = "public" | "private" | "locked";
 
 export type EventLocation = {
@@ -92,6 +93,7 @@ export type EventResponse = {
   location?: EventLocation | null;
   privacy: EventPrivacy;
   status: EventStatus;
+  crowdStatus?: CrowdStatus | null;
   tickets: EventTicket[];
   categories: string[];
   publishedAt?: string | null;

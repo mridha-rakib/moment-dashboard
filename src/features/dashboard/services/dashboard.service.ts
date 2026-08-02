@@ -1,6 +1,6 @@
 import { AppApiError, httpClient } from "@/shared/api";
 import type { ApiResponse } from "@/shared/api";
-import type { AdminMapEvent } from "../types";
+import type { AdminMapEvent, DashboardOverviewParams, DashboardOverviewResponse } from "../types";
 import { dashboardEndpoints } from "./dashboard.endpoints";
 
 type MapEventsPayload = { events?: AdminMapEvent[] };
@@ -26,5 +26,25 @@ export const dashboardService = {
     }
 
     return events.filter(hasValidCoordinates);
+  },
+
+  async getOverview(
+    params: DashboardOverviewParams,
+    signal?: AbortSignal,
+  ): Promise<DashboardOverviewResponse> {
+    const response = await httpClient.get<ApiResponse<DashboardOverviewResponse>>(dashboardEndpoints.overview, {
+      params,
+      signal,
+    });
+    const overview = response.data.data;
+
+    if (!overview) {
+      throw new AppApiError(response.data.message || "The dashboard overview response was empty.", {
+        requestId: response.data.requestId,
+        statusCode: response.data.statusCode,
+      });
+    }
+
+    return overview;
   },
 };

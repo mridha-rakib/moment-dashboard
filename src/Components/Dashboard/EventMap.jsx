@@ -17,6 +17,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { dashboardService } from '../../features/dashboard';
 import { appConfig } from '../../shared/config/env';
 import { getCategoryColor } from '../../shared/eventCategories';
+import CrowdStatusBadge from '../../shared/CrowdStatusBadge';
 
 const STATUS_LABELS = {
   upcoming: 'Upcoming',
@@ -96,6 +97,9 @@ const EventDetails = ({ event }) => {
             <Radio size={11} strokeWidth={2.5} />
             {STATUS_LABELS[event.status] ?? 'Active'}
           </span>
+          <div className="mt-1.5 flex justify-start">
+            <CrowdStatusBadge eventStatus={event.status} crowdStatus={event.crowdStatus} />
+          </div>
         </div>
       </div>
     </header>

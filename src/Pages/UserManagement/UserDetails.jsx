@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { getApiErrorMessage } from '@/shared/api';
 import { getStorageDownloadUrl } from '@/shared/storage/object-storage.service';
 import { userManagementService } from '@/features/users';
+import CrowdStatusBadge from '@/shared/CrowdStatusBadge';
 
 const formatAccountType = (type) => {
   if (type === 'business') return 'Business Account';
@@ -277,8 +278,11 @@ const UserDetails = () => {
               </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-            <div className={`absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 ${badge.className} rounded-full`}>
-              <span className="text-[10px] font-bold text-white uppercase tracking-wider">{badge.label}</span>
+            <div className="absolute top-4 right-4 flex flex-col items-end gap-1.5">
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 ${badge.className} rounded-full`}>
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider">{badge.label}</span>
+              </div>
+              <CrowdStatusBadge eventStatus={event.status} crowdStatus={event.crowdStatus} />
             </div>
             <div className="absolute bottom-5 left-5 right-5 space-y-2">
               {event.categories?.length > 0 && (
