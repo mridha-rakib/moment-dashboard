@@ -89,7 +89,7 @@ const TicketStatTileSkeleton = () => (
 
 export default function Dashboard() {
   const [activeFilter, setActiveFilter] = React.useState('Today');
-  const [appliedRange, setAppliedRange] = React.useState({ preset: 'today' });
+  const [appliedRange, setAppliedRange] = React.useState({ range: 'today' });
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [selectedQuick, setSelectedQuick] = React.useState('Today');
@@ -136,7 +136,7 @@ export default function Dashboard() {
       return;
     }
     setActiveFilter(filter);
-    setAppliedRange({ preset: presetForFilter[filter] });
+    setAppliedRange({ range: presetForFilter[filter] });
   };
 
   const handleQuickSelect = (label) => {
@@ -168,7 +168,7 @@ export default function Dashboard() {
     setCustomRangeError(null);
     setIsModalOpen(false);
     setActiveFilter('Custom');
-    setAppliedRange({ preset: 'custom', start: toIsoDate(startDate), end: toIsoDate(endDate) });
+    setAppliedRange({ range: 'custom', start: toIsoDate(startDate), end: toIsoDate(endDate) });
   };
 
   const users = overview?.users;
@@ -277,7 +277,7 @@ export default function Dashboard() {
               </button>
             ))}
           </div>
-          {activeFilter === 'Custom' && appliedRange.preset === 'custom' && (
+          {activeFilter === 'Custom' && appliedRange.range === 'custom' && (
             <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500">
               Showing {appliedRange.start} &ndash; {appliedRange.end}
             </p>
