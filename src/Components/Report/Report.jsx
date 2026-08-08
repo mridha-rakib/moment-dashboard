@@ -323,8 +323,8 @@ const Report = () => {
               <button disabled={selectedReport?.targetType === 'user' || isActionLoading} onClick={() => void handleAction('remove_content')} className="flex items-center gap-3 px-6 py-4 text-sm font-bold text-[#4B4B4B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all border-b border-gray-50 dark:border-gray-800 disabled:opacity-40">
                 <XCircle size={18} className="text-gray-400" /> Remove Content
               </button>
-              <button disabled={isActionLoading} onClick={() => void handleAction('warn')} className="flex items-center gap-3 px-6 py-4 text-sm font-bold text-[#4B4B4B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all border-b border-gray-50 dark:border-gray-800 disabled:opacity-40">
-                <ShieldAlert size={18} className="text-gray-400" /> Warn User
+              <button disabled={isActionLoading} onClick={() => void handleAction('suspend_user')} className="flex items-center gap-3 px-6 py-4 text-sm font-bold text-[#4B4B4B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all border-b border-gray-50 dark:border-gray-800 disabled:opacity-40">
+                <ShieldAlert size={18} className="text-gray-400" /> Banned User
               </button>
               <button disabled={isActionLoading} onClick={() => void handleAction('dismiss')} className="flex items-center gap-3 px-6 py-4 text-sm font-bold text-[#4B4B4B] dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2D2D3F] transition-all disabled:opacity-40">
                 <UserMinus size={18} className="text-gray-400" /> Dismiss Report

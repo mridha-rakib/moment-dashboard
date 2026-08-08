@@ -1,6 +1,7 @@
 export type ReportStatus = "pending" | "resolved" | "dismissed";
 export type ReportTargetType = "post" | "event" | "user" | "room";
 export type ReportAction = "warn" | "remove_content" | "suspend_user" | "dismiss";
+export type ReportContentMediaType = "image" | "video" | "audio";
 
 export type ReportUser = {
   id: string;
@@ -19,7 +20,7 @@ export type AdminReport = {
   details?: string | null;
   status: ReportStatus;
   resolutionAction?: ReportAction | null;
-  content: { title?: string | null; description?: string | null; imageUrl?: string | null };
+  content: { title?: string | null; description?: string | null; imageUrl?: string | null; mediaType?: ReportContentMediaType | null };
   createdAt: string;
   updatedAt: string;
 };

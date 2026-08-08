@@ -38,11 +38,12 @@ const ReportDetails = () => {
     count: detail.relatedReports.length,
     status: titleCase(detail.report.status),
     targetType: detail.report.targetType,
-    content: { image: detail.report.content.imageUrl, description: detail.report.content.description || detail.report.content.title || 'No content description available.' },
+    content: { image: detail.report.content.imageUrl, mediaType: detail.report.content.mediaType, description: detail.report.content.description || detail.report.content.title || 'No content description available.' },
     reportedUser: { ...detail.report.reportedUser, username: detail.report.reportedUser.email, avatar: avatarFor(detail.report.reportedUser) },
     reports: detail.relatedReports.map((report) => ({
       by: { ...report.reporter, username: report.reporter.email, avatar: avatarFor(report.reporter) },
       reason: { category: `${titleCase(report.targetType)} report`, type: report.reason },
+      details: report.details || 'No additional details provided.',
     })),
   } : null, [detail]);
 
@@ -131,7 +132,9 @@ const ReportDetails = () => {
             <h3 className="text-xl font-bold text-[#1A1A4B] dark:text-white transition-colors">Reported Content</h3>
             <div className="bg-white dark:bg-[#1E1E2D] rounded-[32px] p-6 shadow-sm border border-gray-50 dark:border-gray-800 space-y-6 transition-colors">
               {reportData.content.image && <div className="aspect-[16/10] rounded-[24px] overflow-hidden">
-                <img src={reportData.content.image} alt="Reported content" className="w-full h-full object-cover" />
+                {reportData.content.mediaType === 'video'
+                  ? <video src={reportData.content.image} controls className="w-full h-full object-cover" />
+                  : <img src={reportData.content.image} alt="Reported content" className="w-full h-full object-cover" />}
               </div>}
               <p className="text-[14px] leading-relaxed text-gray-400 font-medium">
                 {reportData.content.description}
@@ -162,10 +165,10 @@ const ReportDetails = () => {
             {/* Reporters List */}
             <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
               {reportData.reports.map((report, index) => (
-                <div key={index} className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-right-4 duration-500" style={{ animationDelay: `${index * 100}ms` }}>
-                  <div className="space-y-4">
+                <div key={index} className="grid grid-cols-2 gap-4 items-stretch animate-in fade-in slide-in-from-right-4 duration-500" style={{ animationDelay: `${index * 100}ms` }}>
+                  <div className="flex flex-col gap-4">
                     <h3 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">Reported By</h3>
-                    <div className="flex items-center gap-4 bg-white dark:bg-[#1E1E2D] p-4 rounded-2xl border border-gray-50 dark:border-gray-800 shadow-sm transition-colors">
+                    <div className="flex items-center gap-4 bg-white dark:bg-[#1E1E2D] p-4 rounded-2xl border border-gray-50 dark:border-gray-800 shadow-sm flex-1 transition-colors">
                       <img src={report.by.avatar} alt={report.by.name} className="w-12 h-12 rounded-full object-cover" />
                       <div>
                         <p className="font-bold text-[#1A1A4B] dark:text-white transition-colors">{report.by.name}</p>
@@ -173,11 +176,13 @@ const ReportDetails = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-4">
+                  <div className="flex flex-col gap-4">
                     <h3 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">Reported Reason</h3>
-                    <div className="bg-white dark:bg-[#1E1E2D] p-4 rounded-2xl border border-gray-50 dark:border-gray-800 shadow-sm h-full flex flex-col justify-center transition-colors">
+                    <div className="bg-white dark:bg-[#1E1E2D] p-4 rounded-2xl border border-gray-50 dark:border-gray-800 shadow-sm flex-1 flex flex-col justify-center transition-colors">
                       <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-1">{report.reason.category}</p>
                       <p className="text-sm font-bold text-[#4B4B4B] dark:text-gray-300 transition-colors">{report.reason.type}</p>
+                      <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-1 mt-3 pt-3 border-t border-gray-50 dark:border-gray-800">Reporter's Notes</p>
+                      <p className="text-sm font-medium text-gray-400 break-words">{report.details}</p>
                     </div>
                   </div>
 
