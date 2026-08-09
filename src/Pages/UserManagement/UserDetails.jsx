@@ -51,6 +51,7 @@ const UserDetails = () => {
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState(null);
   const [eventsLoaded, setEventsLoaded] = useState(false);
+  const [failedEventImageIds, setFailedEventImageIds] = useState(() => new Set());
 
   const loadUser = useCallback(async () => {
     if (!id) return;
@@ -141,6 +142,7 @@ const UserDetails = () => {
       ]);
 
       setEvents({ active, past });
+      setFailedEventImageIds(new Set());
       setEventsLoaded(true);
     } catch (loadError) {
       setEventsError(getApiErrorMessage(loadError, 'Unable to load events.'));
@@ -261,16 +263,30 @@ const UserDetails = () => {
   const renderEventCard = (event) => {
     const badge = getEventStatusBadge(event.status);
     const locationLabel = event.location?.venue || event.location?.address || event.location?.searchLabel;
+    const hasBannerImage = event.bannerImageUrl && !failedEventImageIds.has(event.id);
 
     return (
-      <div key={event.id} className="bg-white dark:bg-[#1E1E2D] rounded-[22px] overflow-hidden shadow-sm border border-gray-50 dark:border-gray-800 group hover:shadow-xl transition-all duration-300">
+      <button
+        key={event.id}
+        type="button"
+        onClick={() => navigate(`/event-details/${event.id}`)}
+        className="block w-full bg-white dark:bg-[#1E1E2D] rounded-[22px] overflow-hidden shadow-sm border border-gray-50 dark:border-gray-800 group hover:shadow-xl transition-all duration-300 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#433E6F] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#13131F]"
+        aria-label={`View details for ${event.name ?? 'event'}`}
+      >
         <div className="px-6 pt-6 pb-6">
           <div className="relative h-[260px] rounded-[20px] overflow-hidden bg-gray-100 dark:bg-[#2D2D3F]">
-            {event.bannerImageUrl ? (
+            {hasBannerImage ? (
               <img
                 src={event.bannerImageUrl}
                 alt={event.name ?? 'Event'}
                 className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
+                onError={() => {
+                  setFailedEventImageIds((current) => {
+                    const next = new Set(current);
+                    next.add(event.id);
+                    return next;
+                  });
+                }}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
@@ -327,7 +343,7 @@ const UserDetails = () => {
             </div>
           </div>
         </div>
-      </div>
+      </button>
     );
   };
 

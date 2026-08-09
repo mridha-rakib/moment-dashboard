@@ -1,6 +1,6 @@
 import { AppApiError, httpClient } from "@/shared/api";
 import type { ApiResponse } from "@/shared/api";
-import type { ManagedUser, ProfileEventGroups, UpdateUserPayload, UserListParams, UserListResponse, UserManagementStats, UsersPagination } from "../types";
+import type { EventResponse, ManagedUser, ProfileEventGroups, UpdateUserPayload, UserListParams, UserListResponse, UserManagementStats, UsersPagination } from "../types";
 import { userManagementEndpoints } from "./user-management.endpoints";
 
 type UsersMeta = Partial<UsersPagination> & {
@@ -115,5 +115,27 @@ export const userManagementService = {
     }
 
     return data.events;
+  },
+
+  async getEvent(id: string): Promise<EventResponse> {
+    const response = await httpClient.get<ApiResponse<{ event: EventResponse }>>(
+      userManagementEndpoints.event(id),
+    );
+
+    const event = response.data?.data?.event;
+    if (!event?.id) {
+      throw new AppApiError(response.data?.message || "Failed to retrieve event.", {
+        requestId: response.data?.requestId,
+        statusCode: response.data?.statusCode,
+      });
+    }
+
+    return event;
+  },
+
+  async getEventMediaObjectUrl(mediaUrl: string): Promise<string> {
+    const response = await httpClient.get<Blob>(mediaUrl, { responseType: "blob" });
+
+    return URL.createObjectURL(response.data);
   },
 };
