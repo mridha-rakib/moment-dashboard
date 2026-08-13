@@ -1,9 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronDown, Hash, Layers } from 'lucide-react';
+import { ChevronDown, Hash, Layers, VideoOff } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { reportService } from '@/features/reports';
 import { getApiErrorMessage } from '@/shared/api';
+
+// Admin video preview is temporarily disabled (resource-constrained deploy)
+// — reported video content falls through to a static placeholder instead of
+// mounting a <video> element. The moderation actions (remove/suspend/dismiss)
+// are unaffected — only the inline preview is disabled.
+const ADMIN_VIDEO_PREVIEW_ENABLED = false;
 
 const titleCase = (value) => value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : 'Unknown';
 const avatarFor = (user) => {
@@ -133,7 +139,12 @@ const ReportDetails = () => {
             <div className="bg-white dark:bg-[#1E1E2D] rounded-[32px] p-6 shadow-sm border border-gray-50 dark:border-gray-800 space-y-6 transition-colors">
               {reportData.content.image && <div className="aspect-[16/10] rounded-[24px] overflow-hidden">
                 {reportData.content.mediaType === 'video'
-                  ? <video src={reportData.content.image} controls className="w-full h-full object-cover" />
+                  ? (ADMIN_VIDEO_PREVIEW_ENABLED
+                      ? <video src={reportData.content.image} controls className="w-full h-full object-cover" />
+                      : <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 text-gray-400 dark:bg-[#2D2D3F]">
+                          <VideoOff size={32} />
+                          <span className="text-xs font-bold">Video preview unavailable</span>
+                        </div>)
                   : <img src={reportData.content.image} alt="Reported content" className="w-full h-full object-cover" />}
               </div>}
               <p className="text-[14px] leading-relaxed text-gray-400 font-medium">

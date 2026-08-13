@@ -18,6 +18,11 @@ import { Spinner } from '@/components/ui/spinner';
 import { getApiErrorMessage } from '@/shared/api';
 import { getStorageDownloadUrl } from '@/shared/storage/object-storage.service';
 import { userManagementService } from '@/features/users';
+
+// Admin video preview is temporarily disabled (resource-constrained deploy)
+// — event gallery video items fall through to the existing "Media
+// unavailable" state below instead of mounting a <video> element.
+const ADMIN_VIDEO_PREVIEW_ENABLED = false;
 import CrowdStatusBadge from '@/shared/CrowdStatusBadge';
 
 const formatLabel = (value) => {
@@ -390,7 +395,7 @@ const EventDetails = () => {
                               }}
                             />
                           )}
-                          {source && !hasFailed && item.type === 'video' && (
+                          {ADMIN_VIDEO_PREVIEW_ENABLED && source && !hasFailed && item.type === 'video' && (
                             <video
                               src={source}
                               className="h-full w-full object-cover"
@@ -405,7 +410,7 @@ const EventDetails = () => {
                               }}
                             />
                           )}
-                          {(!source || hasFailed) && (
+                          {(!source || hasFailed || (item.type === 'video' && !ADMIN_VIDEO_PREVIEW_ENABLED)) && (
                             <div className="flex flex-col items-center gap-2 text-gray-400">
                               {item.type === 'video' ? <Video size={32} /> : <ImageIcon size={32} />}
                               <span className="text-xs font-bold">Media unavailable</span>
