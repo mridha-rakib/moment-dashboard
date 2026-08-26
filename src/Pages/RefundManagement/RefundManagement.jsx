@@ -383,7 +383,7 @@ export default function RefundManagement() {
         <select
           value={filters.status}
           onChange={(event) => updateFilter("status", event.target.value)}
-          className="h-9 w-full min-w-0 rounded-md border border-white/10 bg-black/20 px-3 text-xs font-bold text-gray-300 outline-none"
+          className="refund-status-select h-9 w-full min-w-0 rounded-md border border-white/10 bg-black/20 px-3 text-xs font-bold text-gray-300 outline-none"
         >
           {statusOptions.map(([value, label]) => (
             <option key={value || "all"} value={value}>{label}</option>
@@ -396,7 +396,7 @@ export default function RefundManagement() {
           <select
             value={filters.ticketType}
             onChange={(event) => updateFilter("ticketType", event.target.value)}
-            className="h-9 w-full min-w-0 rounded-md border border-white/10 bg-black/20 px-3 text-xs font-bold text-gray-300 outline-none"
+            className="refund-status-select h-9 w-full min-w-0 rounded-md border border-white/10 bg-black/20 px-3 text-xs font-bold text-gray-300 outline-none"
           >
             {ticketTypeOptions.map(([value, label]) => (
               <option key={value || "all"} value={value}>{label}</option>

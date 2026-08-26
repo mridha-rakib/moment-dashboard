@@ -188,3 +188,42 @@ body {
     color: #475569 !important;
 }
 
+/* Refund Management status filter: fix low-contrast native <option> rendering in dark mode */
+.refund-status-select {
+    color-scheme: light;
+}
+
+.dark .refund-status-select {
+    color-scheme: dark;
+}
+
+.refund-status-select option {
+    background-color: #ffffff;
+    color: #111827;
+}
+
+.dark .refund-status-select option {
+    background-color: #1E1E2D;
+    color: #E5E7EB;
+}
+
+.refund-status-select option:hover,
+.refund-status-select option:checked {
+    background-color: #F1F5F9;
+    color: #111827;
+}
+
+.dark .refund-status-select option:hover,
+.dark .refund-status-select option:checked {
+    background-color: #2D2D3F;
+    color: #ffffff;
+}
+
+.refund-status-select option:disabled {
+    color: #94A3B8;
+}
+
+.dark .refund-status-select option:disabled {
+    color: #64748B;
+}
+
