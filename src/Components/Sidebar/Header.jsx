@@ -24,7 +24,7 @@ const Header = ({ showDrawer }) => {
       case '/support-center':
         return { title: "Support Center", subtitle: "Manage customer support here" };
       case '/report':
-        return { title: "Report", subtitle: "Manage mooment app report" };
+        return { title: "Report", subtitle: "Manage Mooment app report" };
       case '/settings':
         return { title: "Settings", subtitle: "Configure platform preferences" };
       default:
