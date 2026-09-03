@@ -30,6 +30,15 @@ const SettingsTabs = ({ activeTab, setActiveTab, setEditingText }) => {
         </svg>
       ), label: 'Privacy & Policy'
     },
+    {
+      id: 'Refund Policy', icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 9C3 9 4.5 7 7 7C9.5 7 11 9 11 9M3 9V4M3 9H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M21 15C21 15 19.5 17 17 17C14.5 17 13 15 13 15M21 15V20M21 15H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M3 9C3 5.68629 5.68629 3 9 3C11.6124 3 13.8349 4.66962 14.6586 7M21 15C21 18.3137 18.3137 21 15 21C12.3876 21 10.1651 19.3304 9.34141 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      ), label: 'Refund Policy'
+    },
   ];
 
   return (

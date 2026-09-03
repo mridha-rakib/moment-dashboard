@@ -1,10 +1,11 @@
 import type { LegalDocument, LegalDocumentType } from "../types";
 
-export const legalDocumentTypes = ["terms", "privacy"] as const;
+export const legalDocumentTypes = ["terms", "privacy", "refund"] as const;
 
 export const legalDocumentTypeByTab = {
   "Terms & Conditions": "terms",
   "Privacy & Policy": "privacy",
+  "Refund Policy": "refund",
 } as const satisfies Record<string, LegalDocumentType>;
 
 export const defaultLegalDocuments: Record<LegalDocumentType, LegalDocument> = {
@@ -34,6 +35,21 @@ export const defaultLegalDocuments: Record<LegalDocumentType, LegalDocument> = {
         id: "default-privacy-data-collection",
         title: "Data Collection",
         body: "We value your privacy and are committed to protecting your personal data. This policy outlines how we collect, use, and safeguard your information when you use our Mooment application and services.",
+        sortOrder: 0,
+      },
+    ],
+  },
+  refund: {
+    id: null,
+    type: "refund",
+    title: "Refund Policy",
+    subtitle: "Set refund policy of your Mooment app",
+    displayOnLandingPage: true,
+    clauses: [
+      {
+        id: "default-refund-overview",
+        title: "Overview",
+        body: "This policy explains when and how refunds are issued for tickets and purchases made through the Mooment application. It does not change the payment terms agreed at checkout.",
         sortOrder: 0,
       },
     ],

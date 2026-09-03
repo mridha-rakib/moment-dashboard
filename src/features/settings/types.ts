@@ -1,4 +1,4 @@
-export type LegalDocumentType = "terms" | "privacy";
+export type LegalDocumentType = "terms" | "privacy" | "refund";
 
 export interface LegalClause {
   id: string;

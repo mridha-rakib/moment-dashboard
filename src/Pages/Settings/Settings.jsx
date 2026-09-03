@@ -35,6 +35,7 @@ const Settings = () => {
   useEffect(() => {
     void fetchLegalDocument('terms');
     void fetchLegalDocument('privacy');
+    void fetchLegalDocument('refund');
     void fetchPricingSettings();
   }, [fetchLegalDocument, fetchPricingSettings]);
 
@@ -149,6 +150,20 @@ const Settings = () => {
               setEditingText={setEditingText}
               isSaving={savingLegalDocuments.privacy}
               lastModifiedText={formatLastModified(legalDocuments.privacy)}
+            />
+          )}
+
+          {activeTab === 'Refund Policy' && (
+            <DynamicLegalEditor
+              type="refund"
+              title="Refund Policy"
+              subtitle="Set refund policy of your Mooment app"
+              content={legalDocuments.refund.clauses}
+              setContent={(content) => saveLegalClauses('refund', content)}
+              editingText={editingText}
+              setEditingText={setEditingText}
+              isSaving={savingLegalDocuments.refund}
+              lastModifiedText={formatLastModified(legalDocuments.refund)}
             />
           )}
 
