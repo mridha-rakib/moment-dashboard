@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Analytics01Icon, CreditCardPosIcon, HeadsetIcon } from "@hugeicons/core-free-icons";
-import adminlogo from "../../assets/image/adminlogo.png";
 import adminImage from "../../assets/image/adminkickclick.jpg";
+import Logo from "@/shared/Logo";
 import { useAuthStore } from "../../features/auth";
 import { getStorageDownloadUrl } from "@/shared/storage/object-storage.service";
 
@@ -88,14 +88,13 @@ const Sidebar = ({ closeDrawer, isCollapsed = false, onToggleCollapse }) => {
       {/* Sidebar Header */}
       <div className={`flex transition-all duration-300 ${isCollapsed ? "flex-col gap-4 items-center justify-center px-2 py-6 animate-in fade-in" : "p-8 pb-4 items-center justify-between"}`}>
         <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 min-w-0"}`}>
-          <img
-            src={adminlogo}
-            alt="Mooment admin logo"
-            className="w-11 h-11 rounded-2xl object-contain ring-1 ring-white/10 shadow-lg flex-shrink-0"
+          <Logo
+            alt="mooment admin logo"
+            className="w-11 h-11 rounded-2xl ring-1 ring-white/10 shadow-lg flex-shrink-0"
           />
           {!isCollapsed && (
             <div className="min-w-0 animate-in fade-in duration-300">
-              <h1 className="text-white font-black text-lg tracking-tight leading-none">Mooment</h1>
+              <h1 className="text-white font-black text-lg tracking-tight leading-none">mooment</h1>
               <p className="mt-1 text-gray-500 text-[10px] font-bold uppercase tracking-wider">Super Admin</p>
             </div>
           )}

@@ -69,7 +69,7 @@ const Header = ({ showDrawer }) => {
             backPath: '/support-center'
           };
         }
-        return { title: "Xenog Dashboard", subtitle: "Admin Portal" };
+        return { title: "mooment Dashboard", subtitle: "Admin Portal" };
     }
   };
 
