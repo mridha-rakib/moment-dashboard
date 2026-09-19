@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, LogIn } from "lucide-react";
-import mainLogo from "../../../assets/image/main_logo.png";
+import Logo from "@/shared/Logo";
 import { useAuthStore } from "../../../features/auth";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -36,7 +36,7 @@ const SignIn = () => {
         {/* Branding Header with Dark Contrast Container */}
         <div className="flex flex-col items-center mb-12 text-center">
           <div className="w-24 h-24 bg-[#0C0B10] rounded-[28px] flex items-center justify-center mb-6 shadow-2xl shadow-black/20 transform hover:scale-105 transition-all duration-500">
-            <img src={mainLogo} alt="Mooment" className="w-16 h-16 rounded-[20px] object-contain filter drop-shadow-lg" />
+            <Logo alt="mooment" className="w-16 h-16 rounded-[20px] filter drop-shadow-lg" />
           </div>
           <h2 className="text-2xl font-black text-[#1A1A4B] tracking-tight mb-1">Welcome Back!</h2>
           <p className="text-gray-400 font-medium text-sm">Please enter your details to continue</p>
